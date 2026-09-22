@@ -1,0 +1,27 @@
+name: quality
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  source-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source policy
+        run: |
+          test -f sdkconfig.defaults.rev1_3
+          grep -q '^CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y$' sdkconfig.defaults.rev1_3
+          grep -q '^CONFIG_ESP32P4_REV_MIN_100=y$' sdkconfig.defaults.rev1_3
+          grep -q '^CONFIG_SPIRAM_SPEED_200M=y$' sdkconfig.defaults.rev1_3
+          grep -q '^CONFIG_SR_WN_WN9_HEYKIRA_TTS3=y$' sdkconfig.defaults
+          ! grep -R -E 'sk-[A-Za-z0-9_-]{20,}' --exclude-dir=.git .
+      - name: Test Kira state machine
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -Icomponents/kira_core/include \
+            components/kira_core/state_machine.cpp \
+            components/kira_core/test/state_machine_test.cpp \
+            -o /tmp/kira-state-machine-test
+          /tmp/kira-state-machine-test

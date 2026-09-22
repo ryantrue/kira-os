@@ -1,0 +1,23 @@
+dependencies:
+  idf:
+    version: ">=6.1,<6.2"
+
+  espressif/brookesia_hal_adaptor: "0.8.*"
+  espressif/brookesia_hal_boards: "0.8.*"
+  espressif/brookesia_service_audio: "0.8.*"
+  espressif/brookesia_service_device: "0.8.*"
+  espressif/brookesia_service_display: "0.8.*"
+  espressif/brookesia_service_http: "0.8.*"
+  espressif/brookesia_service_sntp: "0.8.*"
+  espressif/brookesia_service_storage: "0.8.*"
+  espressif/brookesia_service_wifi: "0.8.*"
+  espressif/brookesia_agent_openai: "0.8.*"
+  espressif/brookesia_expression_emote: "0.8.*"
+  espressif/brookesia_gui_lvgl: "0.8.*"
+  espressif/brookesia_runtime_js: "0.8.*"
+  espressif/brookesia_system_super: "0.8.*"
+  espressif/brookesia_app_settings: "0.8.*"
+  espressif/brookesia_app_store: "0.8.*"
+  espressif/brookesia_app_files: "0.8.*"
+  waveshare/esp32_p4_wifi6_touch_lcd_4b: "3.0.1"
+
