@@ -35,12 +35,7 @@ jobs:
         shell: bash
         run: |
           . "$IDF_PATH/export.sh"
-          idf.py set-target esp32p4
-          idf.py reconfigure
-          idf.py gen-bmgr-config -c boards -b esp32_p4_wifi6_touch_lcd_4b
-          # Board generation activates additional conditional components.
-          # Resolve that second dependency layer before entering the build.
-          idf.py reconfigure
+          bash scripts/configure.sh
       - name: Build Kira OS
         shell: bash
         run: |
