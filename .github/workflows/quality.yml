@@ -25,3 +25,30 @@ jobs:
             components/kira_core/test/state_machine_test.cpp \
             -o /tmp/kira-state-machine-test
           /tmp/kira-state-machine-test
+
+  firmware:
+    runs-on: ubuntu-latest
+    container: espressif/idf:release-v6.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Waveshare board
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          idf.py set-target esp32p4
+          idf.py reconfigure
+          idf.py gen-bmgr-config -c boards -b esp32_p4_wifi6_touch_lcd_4b
+      - name: Build Kira OS
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          idf.py build
+      - name: Upload flash image set
+        uses: actions/upload-artifact@v4
+        with:
+          name: kira-os-esp32p4-rev1-3
+          path: |
+            build/*.bin
+            build/bootloader/*.bin
+            build/partition_table/*.bin
+            build/flash_args

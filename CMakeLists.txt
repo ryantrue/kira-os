@@ -9,3 +9,5 @@ option(CCACHE_ENABLE "Use ccache" ON)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(kira_os)
 
+idf_build_set_property(COMPILE_OPTIONS -Wno-error=stringop-truncation APPEND)
+brookesia_system_super_apply_compile_policy()

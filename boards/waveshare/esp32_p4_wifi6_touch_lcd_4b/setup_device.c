@@ -3,6 +3,8 @@
  */
 #include "esp_err.h"
 #include "esp_log.h"
+#include "driver/gpio.h"
+#include "esp_check.h"
 #include "dev_display_lcd.h"
 #include "esp_lcd_st7703.h"
 #include "esp_lcd_touch_gt911.h"
@@ -14,6 +16,13 @@ __attribute__((weak)) esp_err_t lcd_dsi_panel_factory_entry_t(
     dev_display_lcd_config_t *lcd_cfg,
     dev_display_lcd_handles_t *lcd_handles)
 {
+    gpio_config_t backlight_enable = {
+        .pin_bit_mask = 1ULL << GPIO_NUM_33,
+        .mode = GPIO_MODE_OUTPUT,
+    };
+    ESP_RETURN_ON_ERROR(gpio_config(&backlight_enable), TAG, "Backlight enable GPIO config failed");
+    ESP_RETURN_ON_ERROR(gpio_set_level(GPIO_NUM_33, 1), TAG, "Backlight enable failed");
+
     st7703_vendor_config_t vendor_config = {
         .flags = {.use_mipi_interface = 1},
         .mipi_config = {
@@ -43,4 +52,3 @@ __attribute__((weak)) esp_err_t lcd_touch_factory_entry_t(
 {
     return esp_lcd_touch_new_i2c_gt911(io, config, touch);
 }
-

@@ -1,21 +1,68 @@
 /*
  * SPDX-License-Identifier: Apache-2.0
  */
-#include "esp_log.h"
-#include "kira/state_machine.hpp"
+#include <memory>
 
-namespace {
-constexpr char TAG[] = "kira_boot";
-}
+#include "boost/thread.hpp"
+#include "brookesia/gui_lvgl.hpp"
+#include "brookesia/lib_utils/thread_config.hpp"
+#include "brookesia/system_super.hpp"
+
+#include "kira/surface.hpp"
+#include "modules/display.hpp"
+#include "modules/general_services.hpp"
+#include "private/utils.hpp"
+
+using namespace esp_brookesia;
 
 extern "C" void app_main(void)
 {
-    kira::StateMachine state;
-    state.dispatch(kira::Event::BootCompleted);
+    auto setup = []() {
+        BROOKESIA_LOGI("Starting Kira OS");
+        BROOKESIA_CHECK_FALSE_EXIT(
+            GeneralServices::get_instance().init(), "Failed to initialize services"
+        );
 
-    // The HAL/Super composition is intentionally the next bring-up change.
-    // Keeping the product state machine executable now gives CI a stable seam
-    // while display, audio and board-manager integration are completed.
-    ESP_LOGI(TAG, "Kira OS booted; surface=%s", kira::to_string(state.current()));
+        auto &display = Display::get_instance();
+        BROOKESIA_CHECK_FALSE_EXIT(display.start({}), "Failed to start display");
+        BROOKESIA_CHECK_FALSE_EXIT(
+            GeneralServices::get_instance().start_audio_services(),
+            "Failed to start audio services"
+        );
+
+        static std::unique_ptr<system::super::System> system_instance;
+        system_instance = std::make_unique<system::super::System>();
+
+        system::super::System::Config config;
+        config.core_config.gui_backend = std::make_unique<gui::lvgl::Backend>();
+        config.core_config.environment = {
+            .width_px = static_cast<int32_t>(display.width()),
+            .height_px = static_cast<int32_t>(display.height()),
+            .density = 1.0F,
+            .font_scale = 1.0F,
+            .language = "en_US",
+            .theme_id = "dark",
+        };
+
+        auto init_result = system_instance->init(std::move(config));
+        BROOKESIA_CHECK_FALSE_EXIT(
+            init_result, "System init failed: %1%", init_result.error()
+        );
+        auto start_result = system_instance->start();
+        BROOKESIA_CHECK_FALSE_EXIT(
+            start_result, "System start failed: %1%", start_result.error()
+        );
+
+        BROOKESIA_CHECK_FALSE_EXIT(
+            kira::Surface::instance().start(), "Failed to start Kira surface"
+        );
+        BROOKESIA_LOGI("Kira OS ready");
+    };
+
+    BROOKESIA_THREAD_CONFIG_GUARD({
+        .name = "kira_setup",
+        .stack_size = 48 * 1024,
+        .stack_in_ext = true,
+    });
+    boost::thread(setup).detach();
 }
-

@@ -2,7 +2,7 @@
 
 Kira OS is a touch-first, voice-native operating environment for the
 Waveshare ESP32-P4-WIFI6-Touch-LCD-4B. It is built as a product on top of
-ESP-IDF 6.1 and ESP-Brookesia System Super 0.8, not as a Home Assistant panel.
+ESP-IDF 6.0 and ESP-Brookesia System Super 0.8, not as a Home Assistant panel.
 
 The default surface is Kira: an audio-reactive sphere that processes ambient
 audio locally and activates the cloud assistant only after the on-device
@@ -29,7 +29,7 @@ integration and the first on-device Kira surface are the current milestone.
 
 ## Toolchain
 
-- ESP-IDF `v6.1`
+- ESP-IDF `v6.0.2` (latest stable line validated by upstream Brookesia CI)
 - ESP-Brookesia `0.8.x`
 - LVGL `9.x`
 - Waveshare BSP `3.0.1`
@@ -40,12 +40,13 @@ integration and the first on-device Kira surface are the current milestone.
 ```bash
 . "$IDF_PATH/export.sh"
 idf.py set-target esp32p4
-idf.py gen-bmgr-config -b esp32_p4_wifi6_touch_lcd_4b
+idf.py reconfigure
+idf.py gen-bmgr-config -c boards -b esp32_p4_wifi6_touch_lcd_4b
 idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.rev1_3" build
 ```
 
-The board-manager extension is wired in the next bring-up milestone. Until that
-lands, the local board descriptor is the source of truth for the HAL work.
+`reconfigure` resolves the pinned component line; the next command generates
+the HAL glue from the repository-local board descriptor.
 
 See [architecture](docs/architecture.md), [hardware](docs/hardware.md),
 [privacy](docs/privacy.md), and the [roadmap](docs/roadmap.md).
@@ -53,4 +54,3 @@ See [architecture](docs/architecture.md), [hardware](docs/hardware.md),
 ## License
 
 Apache-2.0. Third-party components retain their own licenses.
-

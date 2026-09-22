@@ -1,0 +1,4 @@
+dependencies:
+  espressif/brookesia_gui_lvgl:
+    version: "0.8.*"
+    require: public
