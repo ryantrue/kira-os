@@ -1,7 +1,7 @@
 # Voice and privacy model
 
 The device continuously captures microphone frames for local AFE, VAD, noise
-energy and WakeNet processing. This is not equivalent to continuously streaming
+energy and local wake-word processing. This is not equivalent to continuously streaming
 audio: before `Hey, Kira`, frames remain on-device and expire from bounded
 buffers.
 
@@ -12,4 +12,3 @@ not merely wake-word callbacks.
 
 Credentials are entered through device provisioning and stored in encrypted
 NVS. CI, source files, build logs and release artifacts must contain no API key.
-

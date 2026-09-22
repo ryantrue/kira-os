@@ -21,7 +21,7 @@ it does not make network or assistant decisions itself.
 
 | State | Meaning | Network audio |
 | --- | --- | --- |
-| Idle | Ambient reactive sphere; local WakeNet active | Off |
+| Idle | Ambient reactive sphere; local Kira wake provider active | Off |
 | Listening | Wake word accepted; collecting the request | On |
 | Thinking | Request committed; waiting for first response | On |
 | Speaking | Female assistant voice and speech animation | On |
@@ -34,4 +34,3 @@ it does not make network or assistant decisions itself.
 Release branches pin exact component locks. `main` follows the compatible
 `0.8.*` Brookesia line until the first hardware-verified release, after which
 updates arrive through reviewed dependency pull requests.
-

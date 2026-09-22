@@ -23,7 +23,7 @@
 
 ## M3 — Voice assistant
 
-- WakeNet 9 `Hey, Kira` model partition
+- TFLite Micro `Hey, Kira` wake provider for P4 rev 1.3
 - Brookesia Agent Manager and OpenAI Realtime adapter
 - Runtime credential provisioning and selectable female voice
 - Barge-in, timeouts and privacy validation
@@ -34,4 +34,3 @@
 - Signed BPK application flow
 - A/B OTA with rollback and separately versioned assets/models
 - Home Assistant as an optional application
-

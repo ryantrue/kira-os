@@ -13,7 +13,8 @@ available as a system service while applications are running.
 
 - The microphone front end and wake-word detector run locally at all times.
 - Audio is not sent to a remote service before wake-word activation.
-- The default wake model is WakeNet 9 `Hey, Kira`.
+- Wake-word detection is a replaceable local provider. Revision 1.3 uses a
+  Kira-owned TFLite Micro provider because ESP-SR on ESP-IDF 6 requires P4 rev 3.
 - The desktop and BPK application model come from ESP-Brookesia System Super.
 - Home Assistant is an optional application, never a shell dependency.
 - OpenAI credentials are provisioned at runtime and are never compiled into an
@@ -24,8 +25,9 @@ available as a system service while applications are running.
 ## Status
 
 The repository is in hardware bring-up. The architecture, state machine, board
-descriptor and reproducible dependency line are established. Display/audio HAL
-integration and the first on-device Kira surface are the current milestone.
+descriptor, System Super boot flow, raw audio path, and first on-device Kira
+surface are established. The local TFLite Micro wake provider is the next
+audio milestone.
 
 ## Toolchain
 
