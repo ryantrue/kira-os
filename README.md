@@ -42,11 +42,13 @@ integration and the first on-device Kira surface are the current milestone.
 idf.py set-target esp32p4
 idf.py reconfigure
 idf.py gen-bmgr-config -c boards -b esp32_p4_wifi6_touch_lcd_4b
+idf.py reconfigure
 idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.rev1_3" build
 ```
 
-`reconfigure` resolves the pinned component line; the next command generates
-the HAL glue from the repository-local board descriptor.
+The first `reconfigure` resolves the pinned component line. Board generation
+then creates the HAL glue and activates its conditional dependencies, so the
+second `reconfigure` resolves that hardware-specific layer before compilation.
 
 See [architecture](docs/architecture.md), [hardware](docs/hardware.md),
 [privacy](docs/privacy.md), and the [roadmap](docs/roadmap.md).
