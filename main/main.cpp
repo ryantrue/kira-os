@@ -8,6 +8,7 @@
 #include "brookesia/lib_utils/thread_config.hpp"
 #include "brookesia/system_super.hpp"
 
+#include "kira/boot.hpp"
 #include "kira/surface.hpp"
 #include "modules/display.hpp"
 #include "modules/general_services.hpp"
@@ -17,6 +18,7 @@ using namespace esp_brookesia;
 
 extern "C" void app_main(void)
 {
+    kira::boot::start();
     auto setup = []() {
         BROOKESIA_LOGI("Starting Kira OS");
         BROOKESIA_CHECK_FALSE_EXIT(
