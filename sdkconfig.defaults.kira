@@ -1,0 +1,8 @@
+# Kira OS performance and build-size layer.
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_360=y
+# CONFIG_LV_BUILD_EXAMPLES is not set
+
+# Candidates: enable only after physical rev1.3 verification.
+# CONFIG_SPIRAM_XIP_FROM_PSRAM=y
+# CONFIG_FREERTOS_HZ=1000
