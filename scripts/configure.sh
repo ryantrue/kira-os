@@ -23,6 +23,7 @@ idf.py gen-bmgr-config -c boards -b esp32_p4_wifi6_touch_lcd_4b
 # Rebuild sdkconfig so the board's custom 32 MiB partition table and hardware
 # settings are actually applied before the final dependency convergence/build.
 rm -f sdkconfig
+export SDKCONFIG_DEFAULTS="components/gen_bmgr_codes/board_manager.defaults;sdkconfig.defaults;sdkconfig.defaults.rev1_3;boards/waveshare/esp32_p4_wifi6_touch_lcd_4b/sdkconfig.defaults.board"
 
 # The generated board layer enables further conditional dependencies such as
 # ESP-Hosted and the media pipeline. IDF persists each expansion in the lock
