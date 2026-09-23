@@ -103,6 +103,16 @@ For an incremental build, do not delete managed_components/dependencies.lock:
 When changing manifests, board descriptors, sdkconfig defaults, or CMake,
 perform at least one clean build before declaring the change fixed.
 
+## Known build failures
+
+### LVGL fsdrv: "Invalid drive letter"
+
+LVGL's POSIX and STDIO filesystem drivers can be enabled by upstream/default
+configuration with an invalid default drive letter. Kira does not use those
+host-style drivers; it uses MEMFS plus Brookesia storage. Keep
+`CONFIG_LV_USE_FS_POSIX=n` and `CONFIG_LV_USE_FS_STDIO=n` unless a real
+filesystem integration is added with an explicit valid drive letter.
+
 ## Build debugging order
 
 When the firmware build fails:
