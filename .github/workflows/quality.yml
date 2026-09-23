@@ -7,9 +7,9 @@ on:
 
 jobs:
   source-contracts:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Verify source policy
         run: |
           test -f sdkconfig.defaults.rev1_3
@@ -30,14 +30,14 @@ jobs:
           /tmp/kira-state-machine-test
 
   firmware:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: espressif/idf:v6.0.1
     env:
-      # ESP-IDF enables ccache by default. On ephemeral CI runners it duplicates
-      # a large P4/Brookesia object set without providing a useful cross-run hit.
+      # Keep ccache disabled in the product build: the Brookesia/P4 graph already
+      # exhausted the hosted runner disk when object files were duplicated.
       CCACHE_DISABLE: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Configure Waveshare board
         shell: bash
         run: |
@@ -47,8 +47,33 @@ jobs:
         shell: bash
         run: |
           . "$IDF_PATH/export.sh"
-          idf.py build
+          idf.py build 2>&1 | tee build.log
+      - name: Summarize build errors
+        if: failure()
+        shell: bash
+        run: |
+          {
+            echo '## First build errors'
+            echo '\`\`\`'
+            if [ -f build.log ]; then
+              grep -n -m 40 -E 'error:|FAILED:|No space left|too small|undefined reference|overflowed' build.log || true
+            else
+              echo 'build.log not produced'
+            fi
+            echo '\`\`\`'
+            df -h . || true
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: |
+            build.log
+            build/log/
+          if-no-files-found: ignore
       - name: Upload flash image set
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: kira-os-esp32p4-rev1-3
