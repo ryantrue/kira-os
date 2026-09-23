@@ -1,9 +1,12 @@
-# Name,         Type, SubType, Offset,    Size, Flags
-nvs,            data, nvs,     0x10000,   512K,
-otadata,        data, ota,     0x90000,   8K,
-model,          data, littlefs,0x92000,   1M,
-recovery,       data, 0x40,    0x1A0000,  2M,
-ota_0,          app,  ota_0,   0x3A0000,  16M,
-littlefs_data,  data, littlefs,0x13A0000, 10M,
-storage,        data, fat,     0x1DA0000, 1M,
-coredump,       data, coredump,0x1EA0000, 512K,
+# Name,         Type, SubType,  Offset,   Size, Flags
+# Kira application view of the system partition table.
+# recovery is data here so Kira is size-checked against ota_0.
+nvs,            data, nvs,      0x11000,  512K,
+otadata,        data, ota,      0x91000,  8K,
+phy_init,       data, phy,      0x93000,  4K,
+model,          data, littlefs, 0x94000,  1M,
+recovery,       data, 0x40,     0x1A0000, 2M,
+ota_0,          app,  ota_0,    0x3A0000, 16M,
+littlefs_data,  data, littlefs, 0x13A0000, 10M,
+storage,        data, fat,      0x1DA0000, 1M,
+coredump,       data, coredump, 0x1EA0000, 512K,
