@@ -1,6 +1,6 @@
 dependencies:
   idf:
-    version: ">=6.0.2,<6.1"
+    version: ">=6.0,<6.0.2"
 
   espressif/brookesia_hal_interface: "0.8.2"
   espressif/brookesia_service_helper: "0.8.4"
