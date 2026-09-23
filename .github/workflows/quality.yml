@@ -3,6 +3,7 @@ name: quality
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   source-contracts:
@@ -30,7 +31,7 @@ jobs:
 
   firmware:
     runs-on: ubuntu-latest
-    container: espressif/idf:release-v6.0
+    container: espressif/idf:v6.0.2
     steps:
       - uses: actions/checkout@v4
       - name: Configure Waveshare board
@@ -42,7 +43,7 @@ jobs:
         shell: bash
         run: |
           . "$IDF_PATH/export.sh"
-          idf.py build
+          idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.rev1_3" build
       - name: Upload flash image set
         uses: actions/upload-artifact@v4
         with:
