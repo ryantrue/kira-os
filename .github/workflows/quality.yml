@@ -31,7 +31,7 @@ jobs:
 
   firmware:
     runs-on: ubuntu-latest
-    container: espressif/idf:v6.0.2
+    container: espressif/idf:v6.0.1
     env:
       # ESP-IDF enables ccache by default. On ephemeral CI runners it duplicates
       # a large P4/Brookesia object set without providing a useful cross-run hit.
