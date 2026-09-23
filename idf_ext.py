@@ -29,6 +29,7 @@ def action_extensions(base_actions: dict, project_path: str) -> dict:
     extension = next((path for path in candidates if path.is_file()), None)
     if extension is None:
         return {
+            "version": "1",
             "actions": {
                 "gen-bmgr-config": {
                     "callback": _missing_board_manager,
