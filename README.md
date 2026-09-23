@@ -31,26 +31,47 @@ audio milestone.
 
 ## Toolchain
 
-- ESP-IDF `v6.0.2` (latest stable line validated by upstream Brookesia CI)
-- ESP-Brookesia `0.8.x`
+- ESP-IDF `v6.0.1` (CI baseline; see `docs/upstream-updates.md` for the 6.0.2 migration)
+- ESP-Brookesia `0.8.x`, resolved versions pinned in `dependencies.lock`
 - LVGL `9.x`
 - Waveshare BSP `3.0.1`
 - Target: `esp32p4`
 
-## Build outline
+## Build
 
-```bash
+```
 . "$IDF_PATH/export.sh"
 bash scripts/configure.sh
-idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.rev1_3" build
+idf.py build
 ```
 
-The configuration script resolves the pinned component line, generates HAL
-glue from the local board descriptor, and lets hardware-specific conditional
-dependencies converge before compilation.
+The sdkconfig defaults layers (project, Kira performance layer, board, rev1.3
+silicon profile) are defined once, in the root `CMakeLists.txt`. Do not pass
+defaults through the environment or on the command line.
+
+`scripts/configure.sh` resolves the pinned component graph, generates the board
+layer from the local descriptor, lets conditional dependencies converge and then
+verifies that the rev1.3 profile survived.
+
+Clean build:
+
+```
+idf.py fullclean
+rm -rf managed_components sdkconfig
+bash scripts/configure.sh
+idf.py build
+```
+
+## Updating upstream components
+
+`dependencies.lock` is committed; builds use exactly those versions. To move to
+newer ESP-Brookesia / Board Manager releases, run `scripts/update-deps.sh`, test
+on hardware and commit the new lock. A weekly `upstream-canary` workflow warns
+in advance when newer upstream versions would break the build.
 
 See [architecture](docs/architecture.md), [hardware](docs/hardware.md),
-[privacy](docs/privacy.md), and the [roadmap](docs/roadmap.md).
+[privacy](docs/privacy.md), [performance](docs/performance.md),
+[upstream updates](docs/upstream-updates.md) and the [roadmap](docs/roadmap.md).
 
 ## License
 
