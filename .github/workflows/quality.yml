@@ -32,6 +32,10 @@ jobs:
   firmware:
     runs-on: ubuntu-latest
     container: espressif/idf:v6.0.2
+    env:
+      # ESP-IDF enables ccache by default. On ephemeral CI runners it duplicates
+      # a large P4/Brookesia object set without providing a useful cross-run hit.
+      CCACHE_DISABLE: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Configure Waveshare board
