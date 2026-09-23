@@ -19,6 +19,11 @@ idf.py set-target esp32p4
 resolve_components
 idf.py gen-bmgr-config -c boards -b esp32_p4_wifi6_touch_lcd_4b
 
+# Board Manager discovers board defaults only after generating the board layer.
+# Rebuild sdkconfig so the board's custom 32 MiB partition table and hardware
+# settings are actually applied before the final dependency convergence/build.
+rm -f sdkconfig
+
 # The generated board layer enables further conditional dependencies such as
 # ESP-Hosted and the media pipeline. IDF persists each expansion in the lock
 # file, so bounded retries allow the graph to converge without hiding errors.
