@@ -103,6 +103,7 @@ jobs:
           path: |
             build.log
             build/log/
+            dependencies.lock
           if-no-files-found: ignore
       - name: Upload flash image set
         if: success()
