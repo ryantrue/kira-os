@@ -69,6 +69,24 @@ jobs:
         run: |
           . "$IDF_PATH/export.sh"
           idf.py build 2>&1 | tee build.log
+      - name: Build recovery
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          cd recovery
+          idf.py build 2>&1 | tee ../recovery-build.log
+      - name: Build report and contracts
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          bash scripts/ci-report.sh
+      - name: Upload build report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kira-report
+          path: build/kira-report/
+          if-no-files-found: ignore
       - name: Size report
         if: success()
         shell: bash
@@ -102,6 +120,7 @@ jobs:
           name: build-log
           path: |
             build.log
+            recovery-build.log
             build/log/
             dependencies.lock
           if-no-files-found: ignore
@@ -115,3 +134,5 @@ jobs:
             build/bootloader/*.bin
             build/partition_table/*.bin
             build/flash_args
+            recovery/build/kira_recovery.bin
+            recovery/build/partition_table/partition-table.bin
