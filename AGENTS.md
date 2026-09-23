@@ -23,13 +23,32 @@ Current hardware target:
 ## Supported software line
 
 Keep these constraints aligned unless a migration is intentional and tested:
-- ESP-IDF: >=6.0.2,<6.1; development/CI baseline is v6.0.2
-- ESP-Brookesia components: 0.8.x
+- ESP-IDF: CI baseline is v6.0.1 (`espressif/idf:v6.0.1`); the manifest range
+  in `main/idf_component.yml` must include it
+- ESP-Brookesia components: 0.8.x, all resolved to one consistent release line
 - Waveshare BSP: 3.0.1
 - Target: esp32p4
 
 Do not casually upgrade ESP-IDF, Brookesia, the Waveshare BSP, ESP-Hosted, or
-board-manager components independently. They form one compatibility graph.
+board-manager components independently. They form one compatibility graph.\nBrookesia components share one major.minor line and depend on one ESP-IDF\nrelease; mixing pinned old patches with floating new ones is a common cause of API mismatches.
+
+## Dependency lock
+
+`dependencies.lock` is committed and is the source of truth for resolved
+versions. Do not delete it to fix a build. Upgrades go through
+`scripts/update-deps.sh`. The weekly `upstream-canary` intentionally resolves
+the newest allowed graph and is an early-warning job, not the product baseline.
+
+## sdkconfig defaults layers
+
+The root `CMakeLists.txt` is the only owner of the defaults list. During the
+bootstrap configure, board-specific layers are intentionally deferred until
+`gen-bmgr-config` has created `components/gen_bmgr_codes/board_manager.defaults`;
+otherwise ESP-IDF 6.0.1 sees conditional board Kconfig symbols before their
+components exist and aborts with `Missing required kconfig option after retry`.
+The final order is project baseline, Kira performance layer, generated Board
+Manager defaults, Waveshare board defaults, and rev1.3 silicon profile last.
+Never pass SDKCONFIG_DEFAULTS through the environment or a -D flag.
 
 ## Critical ESP32-P4 rev1.3 constraint
 
@@ -86,13 +105,11 @@ lockfile rather than increasing the retry count.
 
 ## Canonical clean build
 
-Use an ESP-IDF v6.0.2 environment:
-
-    . "$IDF_PATH/export.sh"
+. "$IDF_PATH/export.sh"
     idf.py fullclean
-    rm -rf managed_components dependencies.lock
+    rm -rf managed_components sdkconfig
     bash scripts/configure.sh
-    idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.rev1_3" build
+    idf.py build
 
 For an incremental build, do not delete managed_components/dependencies.lock:
 
@@ -109,9 +126,13 @@ perform at least one clean build before declaring the change fixed.
 
 LVGL's POSIX and STDIO filesystem drivers can be enabled by upstream/default
 configuration with an invalid default drive letter. Kira does not use those
-host-style drivers; it uses MEMFS plus Brookesia storage. Keep
-`CONFIG_LV_USE_FS_POSIX=n` and `CONFIG_LV_USE_FS_STDIO=n` unless a real
-filesystem integration is added with an explicit valid drive letter.
+host-style drivers; it uses MEMFS plus Brookesia storage. Keep explicit valid drive letters for enabled LVGL filesystem drivers. Current product defaults use drive letter 65 (A) for STDIO/POSIX and 77 (M) for MEMFS.
+
+### hal/assert.h: "'noreturn' attribute does not apply to types"
+
+ESP-IDF 6.0.x can surface `-Wattributes` through low-level HAL headers included
+by Board Manager. Kira keeps the warning visible but makes it non-fatal for C++
+with `-Wno-error=attributes`; do not replace this with blanket `-Wno-error`.
 
 ## Build debugging order
 
