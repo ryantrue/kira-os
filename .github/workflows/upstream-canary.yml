@@ -1,0 +1,56 @@
+name: upstream-canary
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  canary:
+    runs-on: ubuntu-24.04
+    container: espressif/idf:release-v6.0
+    continue-on-error: true
+    env:
+      CCACHE_DISABLE: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - name: Resolve newest allowed dependencies
+        shell: bash
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          . "$IDF_PATH/export.sh"
+          rm -f dependencies.lock
+          rm -rf managed_components
+          bash scripts/configure.sh
+      - name: Build
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          idf.py build 2>&1 | tee build.log
+      - name: Report
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## Upstream canary'
+            echo "IDF: $(cat "$IDF_PATH/version.txt" 2>/dev/null || echo unknown)"
+            echo '### dependencies.lock vs committed'
+            echo '```'
+            git --no-pager diff --stat -- dependencies.lock || true
+            echo '```'
+            if [ -f build.log ]; then
+              echo '### First errors'
+              echo '```'
+              grep -n -m 40 -E 'error:|FAILED:|undefined reference|too small' build.log || echo 'none'
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload resolved lock and log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canary
+          path: |
+            dependencies.lock
+            build.log
+          if-no-files-found: ignore
