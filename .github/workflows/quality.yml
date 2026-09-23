@@ -43,7 +43,9 @@ jobs:
         shell: bash
         run: |
           . "$IDF_PATH/export.sh"
-          idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.rev1_3" build
+          rm -f sdkconfig
+          idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.rev1_3" reconfigure
+          idf.py build
       - name: Upload flash image set
         uses: actions/upload-artifact@v4
         with:
