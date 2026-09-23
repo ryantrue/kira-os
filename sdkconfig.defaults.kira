@@ -1,0 +1,10 @@
+# Kira OS performance and build-size layer.
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_360=y
+# Brookesia Wi-Fi backend requires >3072 bytes and enforces this at compile time.
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
+# CONFIG_LV_BUILD_EXAMPLES is not set
+
+# Candidates: enable only after physical rev1.3 verification.
+# CONFIG_SPIRAM_XIP_FROM_PSRAM=y
+# CONFIG_FREERTOS_HZ=1000

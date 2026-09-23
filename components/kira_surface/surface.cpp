@@ -44,7 +44,7 @@ Surface &Surface::instance()
 bool Surface::start()
 {
     if (root_ != nullptr) return true;
-    state_machine_.dispatch(Event::BootCompleted);
+    if (!state_machine_.dispatch(Event::BootCompleted)) return false;
     requested_state_.store(State::Idle, std::memory_order_relaxed);
     esp_brookesia::gui::lvgl::lock_thread();
     create_locked();
@@ -81,7 +81,8 @@ void Surface::create_locked()
         lv_obj_remove_style_all(object);
         lv_obj_set_style_radius(object, LV_RADIUS_CIRCLE, 0);
         lv_obj_set_style_bg_opa(object, LV_OPA_COVER, 0);
-        lv_obj_clear_flag(object, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_clear_flag(object, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_clear_flag(object, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_align(object, LV_ALIGN_CENTER, 0, -28);
     }
 
@@ -169,7 +170,7 @@ void Surface::apply_state_locked(State state)
 void Surface::reveal_desktop_locked()
 {
     if (root_ == nullptr) return;
-    state_machine_.dispatch(Event::ScreenTapped);
+    if (!state_machine_.dispatch(Event::ScreenTapped)) return;
     requested_state_.store(State::Desktop, std::memory_order_relaxed);
     apply_state_locked(State::Desktop);
 }

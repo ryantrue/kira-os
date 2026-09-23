@@ -3,22 +3,41 @@ name: quality
 on:
   push:
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   source-contracts:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Verify source policy
         run: |
+          forbid() {
+            local what="$1"; shift
+            if "$@"; then
+              echo "::error::source policy violated: ${what}"
+              exit 1
+            fi
+          }
           test -f sdkconfig.defaults.rev1_3
           grep -q '^CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y$' sdkconfig.defaults.rev1_3
           grep -q '^CONFIG_ESP32P4_REV_MIN_100=y$' sdkconfig.defaults.rev1_3
           grep -q '^CONFIG_SPIRAM_SPEED_200M=y$' sdkconfig.defaults.rev1_3
           grep -q '^# CONFIG_BROOKESIA_HAL_ADAPTOR_AUDIO_ENABLE_PROCESSOR_IMPL is not set$' \
             boards/waveshare/esp32_p4_wifi6_touch_lcd_4b/sdkconfig.defaults.board
-          ! grep -q '^CONFIG_SR_WN_' sdkconfig.defaults
-          ! grep -R -E 'sk-[A-Za-z0-9_-]{20,}' --exclude-dir=.git .
+          forbid "ESP-SR wake word enabled" grep -q '^CONFIG_SR_WN_' sdkconfig.defaults
+          test -f sdkconfig.defaults.kira
+          grep -q 'set(SDKCONFIG_DEFAULTS' CMakeLists.txt
+          forbid "configure.sh exports defaults" grep -q 'export SDKCONFIG_DEFAULTS' scripts/configure.sh
+          forbid "docs pass defaults on command line" grep -q -- '-DSDKCONFIG''_DEFAULTS' README.md AGENTS.md
+          if [ ! -f dependencies.lock ]; then
+            echo "::warning::dependencies.lock is not committed yet; this run will resolve the graph"
+          fi
+          forbid "API key committed" grep -R -q -E 'sk-[A-Za-z0-9_-]{20,}' --exclude-dir=.git .
       - name: Test Kira state machine
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror \
@@ -29,10 +48,17 @@ jobs:
           /tmp/kira-state-machine-test
 
   firmware:
-    runs-on: ubuntu-latest
-    container: espressif/idf:release-v6.0
+    runs-on: ubuntu-24.04
+    container: espressif/idf:v6.0.1
+    env:
+      # Keep ccache disabled in the product build: the Brookesia/P4 graph already
+      # exhausted the hosted runner disk when object files were duplicated.
+      CCACHE_DISABLE: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - name: Prepare repository
+        shell: bash
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Configure Waveshare board
         shell: bash
         run: |
@@ -42,8 +68,45 @@ jobs:
         shell: bash
         run: |
           . "$IDF_PATH/export.sh"
-          idf.py build
+          idf.py build 2>&1 | tee build.log
+      - name: Size report
+        if: success()
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          {
+            echo '## Firmware size'
+            echo '```'
+            idf.py size
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Summarize build errors
+        if: failure()
+        shell: bash
+        run: |
+          {
+            echo '## First build errors'
+            echo '\`\`\`'
+            if [ -f build.log ]; then
+              grep -n -m 40 -E 'error:|FAILED:|No space left|too small|undefined reference|overflowed' build.log || true
+            else
+              echo 'build.log not produced'
+            fi
+            echo '\`\`\`'
+            df -h . || true
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: |
+            build.log
+            build/log/
+            dependencies.lock
+          if-no-files-found: ignore
       - name: Upload flash image set
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: kira-os-esp32p4-rev1-3
