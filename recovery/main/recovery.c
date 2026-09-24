@@ -43,18 +43,43 @@ static bool file_exists(const char *p){struct stat s;return stat(p,&s)==0;}
 static size_t partition_image_len(const esp_partition_t *p,esp_app_desc_t *d){
  esp_partition_pos_t pos={.offset=p->address,.size=p->size};esp_image_metadata_t m;
  if(esp_image_verify(ESP_IMAGE_VERIFY_SILENT,&pos,&m)!=ESP_OK)return 0;
- if(esp_ota_get_partition_description(p,d)!=ESP_OK||strcmp(d->project_name,KIRA_RECOVERY_EXPECTED_PROJECT)!=0)return 0;return m.image_len;
+ if (esp_ota_get_partition_description(p, d) != ESP_OK ||
+     strcmp(d->project_name, KIRA_RECOVERY_EXPECTED_PROJECT) != 0) {
+  return 0;
+ }
+ return m.image_len;
 }
 static esp_err_t read_file_desc(const char *p,esp_app_desc_t *d,size_t *size){
  struct stat st;if(stat(p,&st)!=0)return ESP_ERR_NOT_FOUND;FILE *f=fopen(p,"rb");if(!f)return ESP_ERR_NOT_FOUND;
  esp_image_header_t h;esp_image_segment_header_t s;bool ok=fread(&h,1,sizeof(h),f)==sizeof(h)&&fread(&s,1,sizeof(s),f)==sizeof(s)&&fread(d,1,sizeof(*d),f)==sizeof(*d);fclose(f);
- if(!ok)return ESP_ERR_INVALID_SIZE;if(h.magic!=ESP_IMAGE_HEADER_MAGIC||h.chip_id!=ESP_CHIP_ID_ESP32P4)return ESP_ERR_INVALID_VERSION;
- if(d->magic_word!=ESP_APP_DESC_MAGIC_WORD||strcmp(d->project_name,KIRA_RECOVERY_EXPECTED_PROJECT)!=0)return ESP_ERR_INVALID_ARG;*size=(size_t)st.st_size;return ESP_OK;
+ if (!ok) {
+  return ESP_ERR_INVALID_SIZE;
+ }
+ if (h.magic != ESP_IMAGE_HEADER_MAGIC || h.chip_id != ESP_CHIP_ID_ESP32P4) {
+  return ESP_ERR_INVALID_VERSION;
+ }
+ if (d->magic_word != ESP_APP_DESC_MAGIC_WORD ||
+     strcmp(d->project_name, KIRA_RECOVERY_EXPECTED_PROJECT) != 0) {
+  return ESP_ERR_INVALID_ARG;
+ }
+ *size = (size_t)st.st_size;
+ return ESP_OK;
 }
 static esp_err_t backup_kira(const esp_partition_t *p,size_t len){
  const char *tmp=KIRA_RECOVERY_DIR "/backup.tmp";FILE *f=fopen(tmp,"wb");if(!f)return ESP_FAIL;esp_err_t e=ESP_OK;
  for(size_t o=0;o<len&&e==ESP_OK;o+=IO_CHUNK){size_t n=(len-o<IO_CHUNK)?len-o:IO_CHUNK;e=esp_partition_read(p,o,s_buf,n);if(e==ESP_OK&&fwrite(s_buf,1,n,f)!=n)e=ESP_FAIL;}
- if(fclose(f)!=0&&e==ESP_OK)e=ESP_FAIL;if(e!=ESP_OK){unlink(tmp);return e;}unlink(KIRA_RECOVERY_BACKUP_FILE);if(rename(tmp,KIRA_RECOVERY_BACKUP_FILE)!=0)return ESP_FAIL;return ESP_OK;
+ if (fclose(f) != 0 && e == ESP_OK) {
+  e = ESP_FAIL;
+ }
+ if (e != ESP_OK) {
+  unlink(tmp);
+  return e;
+ }
+ unlink(KIRA_RECOVERY_BACKUP_FILE);
+ if (rename(tmp, KIRA_RECOVERY_BACKUP_FILE) != 0) {
+  return ESP_FAIL;
+ }
+ return ESP_OK;
 }
 static esp_err_t install_file(const esp_partition_t *p,const char *path){
  esp_app_desc_t d;size_t size=0;esp_err_t e=read_file_desc(path,&d,&size);if(e!=ESP_OK)return e;if(size>p->size)return ESP_ERR_INVALID_SIZE;
