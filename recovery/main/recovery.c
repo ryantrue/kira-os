@@ -40,6 +40,15 @@ static bool mount_sd(void){
  if(e!=ESP_OK){ESP_LOGW(TAG,"SD card not available: %s",esp_err_to_name(e));return false;}mkdir(KIRA_RECOVERY_DIR,0775);ESP_LOGI(TAG,"SD card mounted");return true;
 }
 static bool file_exists(const char *p){struct stat s;return stat(p,&s)==0;}
+static uint8_t load_u8(const char *key){
+ uint8_t value=0;nvs_handle_t h;
+ if(nvs_open(KIRA_RECOVERY_NVS_NAMESPACE,NVS_READONLY,&h)==ESP_OK){nvs_get_u8(h,key,&value);nvs_close(h);}
+ return value;
+}
+static esp_err_t store_u8(const char *key,uint8_t value){
+ nvs_handle_t h;esp_err_t e=nvs_open(KIRA_RECOVERY_NVS_NAMESPACE,NVS_READWRITE,&h);
+ if(e!=ESP_OK)return e;e=nvs_set_u8(h,key,value);if(e==ESP_OK)e=nvs_commit(h);nvs_close(h);return e;
+}
 static size_t partition_image_len(const esp_partition_t *p,esp_app_desc_t *d){
  esp_partition_pos_t pos={.offset=p->address,.size=p->size};esp_image_metadata_t m;
  if(esp_image_verify(ESP_IMAGE_VERIFY_SILENT,&pos,&m)!=ESP_OK)return 0;
@@ -103,6 +112,19 @@ void app_main(void){
  case KIRA_RECOVERY_ACTION_RESTORE:restore_or_stay(k,sd,"restore requested");
  case KIRA_RECOVERY_ACTION_CRASH_LOOP:{esp_app_desc_t b;size_t bs=0;if(sd&&read_file_desc(KIRA_RECOVERY_BACKUP_FILE,&b,&bs)==ESP_OK&&(!len||memcmp(b.app_elf_sha256,cur.app_elf_sha256,sizeof(b.app_elf_sha256))!=0))restore_or_stay(k,sd,"crash loop");stay("no different backup");}
  case KIRA_RECOVERY_ACTION_STAY:stay("recovery requested");
- default:if(len&&!rejected)boot_kira(k);restore_or_stay(k,sd,rejected?"last update rolled back":"no valid Kira");
+ default:
+  if(len&&!rejected)boot_kira(k);
+  if(len&&rejected){
+   if(sd&&file_exists(KIRA_RECOVERY_BACKUP_FILE))restore_or_stay(k,sd,"last update rolled back");
+   uint8_t retry=load_u8(KIRA_RECOVERY_KEY_RETRIES);
+   if(retry<KIRA_RECOVERY_MAX_RETRIES){
+    retry++;
+    if(store_u8(KIRA_RECOVERY_KEY_RETRIES,retry)!=ESP_OK)stay("failed to persist Kira retry counter");
+    ESP_LOGW(TAG,"Kira was not confirmed and no backup exists, retry %u/%u",retry,KIRA_RECOVERY_MAX_RETRIES);
+    boot_kira(k);
+   }
+   stay("Kira did not confirm after 3 attempts; see coredump");
+  }
+  restore_or_stay(k,sd,"no valid Kira");
  }
 }
