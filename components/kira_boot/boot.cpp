@@ -81,6 +81,7 @@ void on_stable(void *)
 {
     confirm_now();
     store_u8(KIRA_RECOVERY_KEY_CRASHES, 0);
+    store_u8(KIRA_RECOVERY_KEY_RETRIES, 0);
     ESP_LOGI(TAG, "system stable");
 }
 }  // namespace
