@@ -46,8 +46,17 @@ static uint8_t load_u8(const char *key){
  return value;
 }
 static esp_err_t store_u8(const char *key,uint8_t value){
- nvs_handle_t h;esp_err_t e=nvs_open(KIRA_RECOVERY_NVS_NAMESPACE,NVS_READWRITE,&h);
- if(e!=ESP_OK)return e;e=nvs_set_u8(h,key,value);if(e==ESP_OK)e=nvs_commit(h);nvs_close(h);return e;
+ nvs_handle_t h;
+ esp_err_t e=nvs_open(KIRA_RECOVERY_NVS_NAMESPACE,NVS_READWRITE,&h);
+ if(e!=ESP_OK){
+  return e;
+ }
+ e=nvs_set_u8(h,key,value);
+ if(e==ESP_OK){
+  e=nvs_commit(h);
+ }
+ nvs_close(h);
+ return e;
 }
 static size_t partition_image_len(const esp_partition_t *p,esp_app_desc_t *d){
  esp_partition_pos_t pos={.offset=p->address,.size=p->size};esp_image_metadata_t m;
