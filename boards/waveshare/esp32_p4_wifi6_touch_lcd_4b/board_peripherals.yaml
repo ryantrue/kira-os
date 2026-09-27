@@ -53,3 +53,4 @@ peripherals:
       channel: 1
       timer_sel: 1
       duty: 0
+      output_invert: true
