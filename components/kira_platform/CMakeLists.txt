@@ -21,6 +21,7 @@ idf_component_register(
         esp_driver_sdmmc
         esp_http_client
         esp_http_server
+        esp_ringbuf
         esp_netif
         esp_timer
         esp_wifi
