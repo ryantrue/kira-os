@@ -1,0 +1,48 @@
+name: claude-context-5baa2d6
+on:
+  push:
+    branches: [tmp/claude-context-5baa2d6]
+jobs:
+  pack:
+    runs-on: ubuntu-24.04
+    container: espressif/idf:v6.0.1
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 5baa2d61148586a8e97057cbcfcdd6c2b0a706bb
+          fetch-depth: 0
+      - name: Configure exact base commit
+        shell: bash
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          . "$IDF_PATH/export.sh"
+          bash scripts/configure.sh
+      - name: Build Claude context package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ctx/managed_components/espressif__esp_board_manager
+          git archive --format=zip -o /tmp/ctx/kira-src-5baa2d6.zip 5baa2d61148586a8e97057cbcfcdd6c2b0a706bb
+          for c in             espressif__brookesia_system_super             espressif__brookesia_app_settings             espressif__brookesia_system_core             espressif__brookesia_gui_interface             espressif__brookesia_service_audio             espressif__brookesia_hal_adaptor             espressif__brookesia_hal_interface             espressif__brookesia_service_storage             espressif__brookesia_app_store; do
+            cp -a "managed_components/$c" "/tmp/ctx/managed_components/"
+          done
+          bm=managed_components/espressif__esp_board_manager
+          for p in include devices/dev_audio_codec devices/dev_fs_fat peripherals/periph_i2s; do
+            if [ -e "$bm/$p" ]; then
+              mkdir -p "/tmp/ctx/managed_components/espressif__esp_board_manager/$(dirname "$p")"
+              cp -a "$bm/$p" "/tmp/ctx/managed_components/espressif__esp_board_manager/$p"
+            fi
+          done
+          cp -a components/gen_bmgr_codes /tmp/ctx/gen_bmgr_codes
+          cp sdkconfig dependencies.lock /tmp/ctx/
+          cat > /tmp/ctx/BOOT_LOG_REQUIRED.txt <<'EOF'
+Hardware UART log is intentionally not synthesized by CI.
+Capture on the physical ESP32-P4 after flashing 5baa2d6, from "Starting Kira OS"
+through "kira_boot: system stable" (or watchdog), including all I2S/ES8311/ES7210/audio lines.
+EOF
+          cd /tmp/ctx
+          zip -qr "$GITHUB_WORKSPACE/kira-claude-context-5baa2d6.zip" .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kira-claude-context-5baa2d6
+          path: kira-claude-context-5baa2d6.zip
