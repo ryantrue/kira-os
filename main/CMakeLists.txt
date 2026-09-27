@@ -1,6 +1,6 @@
 file(GLOB_RECURSE SRCS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.c")
 
-idf_component_register(SRCS ${SRCS} INCLUDE_DIRS "." REQUIRES kira_surface)
+idf_component_register(SRCS ${SRCS} INCLUDE_DIRS "." REQUIRES kira_surface kira_boot)
 
 get_property(kira_runtime_stage_targets GLOBAL PROPERTY BROOKESIA_RUNTIME_APP_STAGE_TARGETS)
 get_property(kira_system_stage_targets GLOBAL PROPERTY BROOKESIA_SYSTEM_SUPER_STAGE_TARGETS)
