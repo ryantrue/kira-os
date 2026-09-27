@@ -1,0 +1,97 @@
+name: claude-handoff-5baa2d6
+
+on:
+  push:
+    branches:
+      - handoff/claude-5baa2d6
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    container: espressif/idf:v6.0.1
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Prepare exact source and resolved components
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          . "$IDF_PATH/export.sh"
+
+          BASE=5baa2d61148586a8e97057cbcfcdd6c2b0a706bb
+          OUT="$GITHUB_WORKSPACE/claude-handoff"
+          mkdir -p "$OUT/managed_components" "$OUT/runtime-log"
+
+          git archive --format=zip -o "$OUT/kira-src-5baa2d6.zip" "$BASE"
+
+          # Resolve exactly the product graph used by the base source.
+          git checkout --detach "$BASE"
+          bash scripts/configure.sh
+
+          cp sdkconfig "$OUT/sdkconfig"
+          cp dependencies.lock "$OUT/dependencies.lock"
+
+          for c in             espressif__brookesia_system_super             espressif__brookesia_app_settings             espressif__brookesia_system_core             espressif__brookesia_gui_interface             espressif__brookesia_service_audio             espressif__brookesia_hal_adaptor             espressif__brookesia_hal_interface             espressif__brookesia_service_storage             espressif__brookesia_app_store
+          do
+            test -d "managed_components/$c"
+            cp -a "managed_components/$c" "$OUT/managed_components/"
+          done
+
+          BM=managed_components/espressif__esp_board_manager
+          mkdir -p "$OUT/managed_components/espressif__esp_board_manager/devices"                    "$OUT/managed_components/espressif__esp_board_manager/peripherals"
+          cp -a "$BM/include" "$OUT/managed_components/espressif__esp_board_manager/"
+          cp -a "$BM/devices/dev_audio_codec" "$OUT/managed_components/espressif__esp_board_manager/devices/"
+          cp -a "$BM/devices/dev_fs_fat" "$OUT/managed_components/espressif__esp_board_manager/devices/"
+          cp -a "$BM/peripherals/periph_i2s" "$OUT/managed_components/espressif__esp_board_manager/peripherals/"
+
+          test -d components/gen_bmgr_codes
+          cp -a components/gen_bmgr_codes "$OUT/gen_bmgr_codes"
+
+          cat > "$OUT/CLAUDE_CONTEXT.md" <<'EOF'
+          # Kira OS handoff — base 5baa2d6
+
+          ## Runtime log
+          A post-5baa2d6 serial log from the physical board is not available to the packaging job.
+          Do not infer hardware runtime behavior from CI. Add the user's serial capture separately.
+
+          ## SD card
+          Board definition: boards/waveshare/esp32_p4_wifi6_touch_lcd_4b/board_devices.yaml.
+          Board Manager device name: fs_sdcard.
+          Type/subtype: fs_fat / sdmmc.
+          SDMMC slot 0, high speed, 4-bit; CLK=43 CMD=44 D0=39 D1=40 D2=41 D3=42.
+          format_if_mount_failed=false.
+          Brookesia HAL storage enables both LittleFS and SDCARD.
+          No direct /sdcard path or direct fs_sdcard consumer exists in Kira-owned source at this base commit;
+          inspect the included generated Board Manager code and Brookesia storage component for the effective mount path/ownership.
+
+          ## Kira surface / System Super
+          main/main.cpp starts kira::boot first, initializes GeneralServices and Display, then audio services.
+          It creates system::super::System, installs gui::lvgl::Backend, calls System::init() and System::start(),
+          and only then calls kira::Surface::instance().start().
+          Kira Surface is NOT a registered System Super app at this commit. It is a Kira-owned top-layer LVGL surface.
+          components/kira_surface/surface.cpp creates its root on lv_display_get_layer_top(lv_display_get_default()),
+          makes it full-screen, and hides it to reveal the System Super desktop on tap.
+          main/CMakeLists.txt REQUIRES kira_surface and kira_boot.
+          EOF
+
+          # Capture useful evidence for Claude without pretending it is a board runtime log.
+          {
+            echo "=== generated fs_sdcard / mount references ==="
+            grep -RniE 'fs_sdcard|mount_point|base_path|/sd|sdcard' components/gen_bmgr_codes               managed_components/espressif__brookesia_service_storage               managed_components/espressif__brookesia_hal_adaptor               managed_components/espressif__esp_board_manager/devices/dev_fs_fat || true
+            echo
+            echo "=== generated audio / I2S / codec references ==="
+            grep -RniE 'audio_dac|audio_adc|ES8311|ES7210|i2s_audio|gpio_pa_control|gpio_num.*53'               components/gen_bmgr_codes || true
+          } > "$OUT/generated-evidence.txt"
+
+          printf '%s\n'             'MISSING: physical-board serial capture after commit 5baa2d6.'             'Required range: "Starting Kira OS" through "system stable", plus any LVGL watchdog/backtrace.'             > "$OUT/runtime-log/README.txt"
+
+      - name: Upload Claude handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-handoff-5baa2d6
+          path: claude-handoff/
+          if-no-files-found: error
+          retention-days: 7
