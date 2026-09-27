@@ -5,7 +5,6 @@
 #include <mutex>
 
 #include "driver/sdmmc_host.h"
-#include "esp_board_manager_includes.h"
 #include "esp_log.h"
 #include "esp_vfs_fat.h"
 #include "sd_pwr_ctrl_by_on_chip_ldo.h"
@@ -14,11 +13,39 @@
 #include "kira/platform/logger.hpp"
 #include "kira/platform/worker.hpp"
 
+// ESP Board Manager owns the mounted card (device "fs_sdcard"). Kira does not
+// declare a component dependency on it: its manifest has $CONFIG{ESP_BOARD_DEV_*}
+// rules that only exist after gen-bmgr-config, and a direct dependency makes the
+// first configure pass fail ("Missing required kconfig option after retry").
+// The functions are linked through brookesia_hal_adaptor; weak references keep
+// kira_platform independent of the dependency graph.
+extern "C" {
+esp_err_t esp_board_manager_get_device_handle(const char *dev_name, void **device_handle) __attribute__((weak));
+esp_err_t esp_board_manager_init_device_by_name(const char *dev_name) __attribute__((weak));
+}
+
 namespace kira::platform::sdcard {
 namespace {
 
 constexpr const char *TAG = "kira_sd";
 constexpr const char *DEVICE_NAME = "fs_sdcard";
+
+// First member of Board Manager's dev_fs_fat_handle_t.
+struct BoardSdHandle {
+    sdmmc_card_t *card;
+};
+
+// Mirror of the fs_sdcard entry in boards/.../board_devices.yaml.
+constexpr int SD_SLOT = SDMMC_HOST_SLOT_0;
+constexpr int SD_FREQ_KHZ = SDMMC_FREQ_HIGHSPEED;
+constexpr int SD_BUS_WIDTH = 4;
+constexpr int SD_LDO_CHANNEL = 4;
+constexpr gpio_num_t SD_CLK = GPIO_NUM_43;
+constexpr gpio_num_t SD_CMD = GPIO_NUM_44;
+constexpr gpio_num_t SD_D0 = GPIO_NUM_39;
+constexpr gpio_num_t SD_D1 = GPIO_NUM_40;
+constexpr gpio_num_t SD_D2 = GPIO_NUM_41;
+constexpr gpio_num_t SD_D3 = GPIO_NUM_42;
 
 std::mutex s_mutex;
 Status s_status;
@@ -58,50 +85,34 @@ esp_err_t format_mounted(sdmmc_card_t *card)
 }
 
 // Card that Board Manager could not mount (no FAT filesystem, e.g. exFAT):
-// bring the bus up with the board's own SDMMC settings, let FATFS create a
-// filesystem, release everything and ask Board Manager to mount it normally.
+// bring the bus up with the board's SDMMC settings, let FATFS create a
+// filesystem, release it and ask Board Manager to mount it normally.
+// The shared SDMMC controller is never torn down (sd_host_shim.c).
 esp_err_t format_unmounted()
 {
-    dev_fs_fat_config_t *cfg = nullptr;
-    esp_err_t err = esp_board_manager_get_device_config(DEVICE_NAME, reinterpret_cast<void **>(&cfg));
-    if (err != ESP_OK || cfg == nullptr) {
-        ESP_LOGE(TAG, "no board configuration for %s", DEVICE_NAME);
-        return err != ESP_OK ? err : ESP_ERR_NOT_FOUND;
-    }
-    const dev_fs_fat_sdmmc_sub_config_t &sd = cfg->sub_cfg.sdmmc;
-
     sdmmc_host_t host = SDMMC_HOST_DEFAULT();
-    host.slot = sd.slot;
-    host.max_freq_khz = static_cast<int>(cfg->frequency);  // SDMMC_FREQ_* values are kHz
+    host.slot = SD_SLOT;
+    host.max_freq_khz = SD_FREQ_KHZ;
 
     sd_pwr_ctrl_handle_t pwr_ctrl = nullptr;
-    if (sd.ldo_chan_id >= 0) {
-        sd_pwr_ctrl_ldo_config_t ldo_config = {};
-        ldo_config.ldo_chan_id = sd.ldo_chan_id;
-        err = sd_pwr_ctrl_new_on_chip_ldo(&ldo_config, &pwr_ctrl);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "SD power control: %s", esp_err_to_name(err));
-            return err;
-        }
-        host.pwr_ctrl_handle = pwr_ctrl;
+    sd_pwr_ctrl_ldo_config_t ldo_config = {};
+    ldo_config.ldo_chan_id = SD_LDO_CHANNEL;
+    esp_err_t err = sd_pwr_ctrl_new_on_chip_ldo(&ldo_config, &pwr_ctrl);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "SD power control: %s", esp_err_to_name(err));
+        return err;
     }
+    host.pwr_ctrl_handle = pwr_ctrl;
 
-    // Same slot setup as Board Manager's dev_fs_fat_sub_sdmmc.c.
     sdmmc_slot_config_t slot = SDMMC_SLOT_CONFIG_DEFAULT();
-    slot.cd = static_cast<gpio_num_t>(sd.pins.cd);
-    slot.wp = static_cast<gpio_num_t>(sd.pins.wp);
-    slot.clk = static_cast<gpio_num_t>(sd.pins.clk);
-    slot.cmd = static_cast<gpio_num_t>(sd.pins.cmd);
-    slot.d0 = static_cast<gpio_num_t>(sd.pins.d0);
-    slot.d1 = static_cast<gpio_num_t>(sd.pins.d1);
-    slot.d2 = static_cast<gpio_num_t>(sd.pins.d2);
-    slot.d3 = static_cast<gpio_num_t>(sd.pins.d3);
-    slot.d4 = static_cast<gpio_num_t>(sd.pins.d4);
-    slot.d5 = static_cast<gpio_num_t>(sd.pins.d5);
-    slot.d6 = static_cast<gpio_num_t>(sd.pins.d6);
-    slot.d7 = static_cast<gpio_num_t>(sd.pins.d7);
-    slot.width = sd.bus_width;
-    slot.flags = sd.slot_flags;
+    slot.clk = SD_CLK;
+    slot.cmd = SD_CMD;
+    slot.d0 = SD_D0;
+    slot.d1 = SD_D1;
+    slot.d2 = SD_D2;
+    slot.d3 = SD_D3;
+    slot.width = SD_BUS_WIDTH;
+    slot.flags = SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
 
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {};
     mount_config.format_if_mount_failed = true;
@@ -116,11 +127,13 @@ esp_err_t format_unmounted()
     } else {
         ESP_LOGE(TAG, "format failed: %s", esp_err_to_name(err));
     }
-    if (pwr_ctrl != nullptr) {
-        sd_pwr_ctrl_del_on_chip_ldo(pwr_ctrl);
-    }
+    sd_pwr_ctrl_del_on_chip_ldo(pwr_ctrl);
     if (err != ESP_OK) {
         return err;
+    }
+    if (esp_board_manager_init_device_by_name == nullptr) {
+        ESP_LOGW(TAG, "Board Manager not linked; card formatted but not mounted");
+        return ESP_ERR_NOT_SUPPORTED;
     }
     err = esp_board_manager_init_device_by_name(DEVICE_NAME);
     if (err != ESP_OK) {
@@ -134,9 +147,10 @@ void format_job()
     logger::pause_sd(true);
     esp_err_t err = ESP_OK;
     void *handle = nullptr;
-    if (esp_board_manager_get_device_handle(DEVICE_NAME, &handle) == ESP_OK && handle != nullptr &&
-            static_cast<dev_fs_fat_handle_t *>(handle)->card != nullptr) {
-        err = format_mounted(static_cast<dev_fs_fat_handle_t *>(handle)->card);
+    if (esp_board_manager_get_device_handle != nullptr &&
+            esp_board_manager_get_device_handle(DEVICE_NAME, &handle) == ESP_OK && handle != nullptr &&
+            static_cast<BoardSdHandle *>(handle)->card != nullptr) {
+        err = format_mounted(static_cast<BoardSdHandle *>(handle)->card);
     } else {
         err = format_unmounted();
     }
