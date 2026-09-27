@@ -1,0 +1,3 @@
+dependencies:
+  espressif/cjson: "*"
+  espressif/esp_board_manager: "*"

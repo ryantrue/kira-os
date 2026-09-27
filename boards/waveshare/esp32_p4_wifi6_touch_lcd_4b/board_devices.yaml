@@ -98,4 +98,8 @@ devices:
         frequency: SDMMC_FREQ_HIGHSPEED
         bus_width: 4
         pins: {clk: 43, cmd: 44, d0: 39, d1: 40, d2: 41, d3: 42}
+        # microSD is powered from on-chip LDO channel 4. Verified on hardware:
+        # recovery mounts the card with LDO 4 (FR_NO_FILESYSTEM on an exFAT card
+        # means the card answered). Without it the card may stay unpowered.
+        ldo_chan_id: 4
 

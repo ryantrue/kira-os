@@ -29,6 +29,13 @@ descriptor, System Super boot flow, raw audio path, and first on-device Kira
 surface are established. The local TFLite Micro wake provider is the next
 audio milestone.
 
+Version 0.2.0 adds Kira Center (floating K button or the gear on the Kira
+surface): assistant auto-start (off by default), AI provider settings, Home
+Assistant control, SD card info and FAT32 formatting, persistent logs with
+download over a Wi-Fi access point, and updates from GitHub Releases through
+recovery. It also restores the speaker on rev1.3. See
+[Kira Center](docs/kira-center.md).
+
 ## Toolchain
 
 - ESP-IDF `v6.0.1` (CI baseline; see `docs/upstream-updates.md` for the 6.0.2 migration)

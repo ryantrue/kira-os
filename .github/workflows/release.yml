@@ -1,0 +1,73 @@
+name: release
+
+# Publishes a GitHub Release for tags vMAJOR.MINOR.PATCH.
+# The tag must equal version.txt, so the firmware reports the same version
+# as the release it came from. Assets follow the updater contract in
+# components/kira_platform/include/kira/platform/updater.hpp.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container: espressif/idf:v6.0.1
+    env:
+      CCACHE_DISABLE: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - name: Prepare repository
+        shell: bash
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Tag matches version.txt
+        shell: bash
+        run: |
+          expected="v$(cat version.txt)"
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match version.txt ($expected)"
+            exit 1
+          fi
+      - name: Build Kira OS and recovery
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          bash scripts/configure.sh
+          idf.py build
+          (cd recovery && idf.py build)
+      - name: Collect release files
+        shell: bash
+        run: |
+          mkdir -p release
+          cp build/kira_os.bin release/kira_os.bin
+          cp recovery/build/kira_recovery.bin release/kira_recovery.bin
+          (cd release && sha256sum kira_os.bin | cut -d' ' -f1 > kira_os.bin.sha256)
+          tar -czf release/kira-os-flash-set.tar.gz \
+            build/bootloader/bootloader.bin build/partition_table/partition-table.bin \
+            build/ota_data_initial.bin build/kira_os.bin build/littlefs_data.bin build/flash_args \
+            recovery/build/kira_recovery.bin recovery/build/partition_table/partition-table.bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: release/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-files
+          path: release
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/kira_os.bin
+            release/kira_os.bin.sha256
+            release/kira_recovery.bin
+            release/kira-os-flash-set.tar.gz
+          fail_on_unmatched_files: true

@@ -1,0 +1,16 @@
+menu "Kira platform"
+
+    config KIRA_UPDATE_GITHUB_REPO
+        string "GitHub repository with Kira OS releases"
+        default "ryantrue/kira-os"
+        help
+            owner/name of the repository whose latest GitHub Release is offered
+            as a firmware update. It must be readable without a token: make the
+            repository public or publish releases to a separate public
+            repository and point this option at it.
+
+    config KIRA_UPDATE_ASSET
+        string "Release asset with the Kira application image"
+        default "kira_os.bin"
+
+endmenu

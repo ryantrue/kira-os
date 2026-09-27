@@ -9,6 +9,10 @@
 #include "brookesia/system_super.hpp"
 
 #include "kira/boot.hpp"
+#include "kira/center.hpp"
+#include "kira/platform/logger.hpp"
+#include "kira/platform/settings.hpp"
+#include "kira/platform/version.hpp"
 #include "kira/surface.hpp"
 #include "modules/display.hpp"
 #include "modules/general_services.hpp"
@@ -18,9 +22,11 @@ using namespace esp_brookesia;
 
 extern "C" void app_main(void)
 {
-    kira::boot::start();
+    kira::boot::start();  // boot safety first: NVS, rollback confirmation, crash counter
+    kira::platform::Settings::instance().load();
+    kira::platform::logger::start();
     auto setup = []() {
-        BROOKESIA_LOGI("Starting Kira OS");
+        BROOKESIA_LOGI("Starting Kira OS %1%", kira::platform::firmware_version());
         BROOKESIA_CHECK_FALSE_EXIT(
             GeneralServices::get_instance().init(), "Failed to initialize services"
         );
@@ -54,10 +60,14 @@ extern "C" void app_main(void)
             start_result, "System start failed: %1%", start_result.error()
         );
 
+        // Auto-start controls only the assistant surface; the desktop, recovery
+        // and updates run regardless.
+        const bool show_kira = kira::platform::Settings::instance().autostart();
         BROOKESIA_CHECK_FALSE_EXIT(
-            kira::Surface::instance().start(), "Failed to start Kira surface"
+            kira::Surface::instance().start(show_kira), "Failed to start Kira surface"
         );
-        BROOKESIA_LOGI("Kira OS ready");
+        kira::center::start();
+        BROOKESIA_LOGI("Kira OS ready (assistant %1%)", show_kira ? "shown" : "hidden until opened");
     };
 
     BROOKESIA_THREAD_CONFIG_GUARD({

@@ -1,0 +1,3 @@
+dependencies:
+  espressif/brookesia_gui_lvgl:
+    version: "0.8.*"

@@ -46,6 +46,30 @@ jobs:
             components/kira_core/test/state_machine_test.cpp \
             -o /tmp/kira-state-machine-test
           /tmp/kira-state-machine-test
+      - name: Test Kira platform (host)
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -Icomponents/kira_platform/include \
+            components/kira_platform/src/semver.cpp \
+            components/kira_platform/src/ai_providers.cpp \
+            components/kira_platform/test/platform_test.cpp \
+            -o /tmp/kira-platform-test
+          /tmp/kira-platform-test
+      - name: Check version source
+        run: |
+          grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' version.txt
+          grep -q 'PROJECT_VER' CMakeLists.txt
+      - name: Test resource overrides
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, subprocess, tempfile
+          stage = pathlib.Path(tempfile.mkdtemp())
+          target = stage / "system/super/shell/constants/default.json"
+          target.parent.mkdir(parents=True)
+          target.write_text(json.dumps({"ui": {"keyboard": {"keyboardHeight": "166dp", "keyFontSize": "16sp"}}}))
+          subprocess.run(["python3", "tools/kira_resource_overrides.py", str(stage)], check=True)
+          assert json.loads(target.read_text())["ui"]["keyboard"]["keyboardHeight"] == "330dp"
+          PY
 
   firmware:
     runs-on: ubuntu-24.04

@@ -28,6 +28,21 @@ if(EXISTS "${_kira_local_defaults}")
 endif()
 list(APPEND _kira_defaults "${_kira_rev_defaults}")
 set(SDKCONFIG_DEFAULTS "${_kira_defaults}")
+# Firmware version, single source: version.txt -> PROJECT_VER -> esp_app_desc_t
+# -> Kira Center and the updater. Format "0.2.0+<commit>"; release tags are
+# v<version.txt> (.github/workflows/release.yml checks this).
+file(STRINGS "${KIRA_ROOT}/version.txt" KIRA_VERSION LIMIT_COUNT 1)
+execute_process(
+    COMMAND git rev-parse --short=7 HEAD
+    WORKING_DIRECTORY "${KIRA_ROOT}"
+    OUTPUT_VARIABLE KIRA_GIT_SHA
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET)
+if(KIRA_GIT_SHA)
+    set(PROJECT_VER "${KIRA_VERSION}+${KIRA_GIT_SHA}")
+else()
+    set(PROJECT_VER "${KIRA_VERSION}")
+endif()
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 idf_build_set_property(COMPILE_OPTIONS -Wno-error=stringop-truncation APPEND)
 idf_build_set_property(CXX_COMPILE_OPTIONS -Wno-error=attributes APPEND)

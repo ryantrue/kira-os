@@ -195,3 +195,26 @@ Document:
 
 Put durable hardware/build knowledge in docs/, and update this file when a new
 constraint changes how agents must work.
+
+
+## Kira Center, platform and audio (0.2.0)
+
+- `components/kira_platform`: settings (NVS `kira_cfg`, cached in RAM, written
+  by the worker task), version, SD card, logger, log sharing, Home Assistant,
+  updater. Slow work runs on the worker task (internal-RAM stack); the UI polls
+  state and never receives calls from other tasks.
+- `components/kira_center`: LVGL UI on the top layer and the assistant
+  auto-start controller. Code that runs on the LVGL task must not touch flash
+  or the filesystem.
+- `components/kira_audio`: publishes the HAL `Audio:Playback` interface on
+  rev1.3, where the Brookesia processor implementation is unavailable. Do not
+  enable both.
+- Version: `version.txt` is the only source. Release tags must equal it.
+- Staged Brookesia resources are adjusted only by
+  `tools/kira_resource_overrides.py`; never edit `managed_components/`.
+
+- The SD card and ESP-Hosted share the single SDMMC controller through the
+  `sdmmc_host_init`/deinit wrap in `kira_platform/src/sd_host_shim.c`. Do not
+  remove it while ESP-IDF lacks the guard (esp-idf#17889).
+
+See docs/kira-center.md.

@@ -41,15 +41,42 @@ Surface &Surface::instance()
     return surface;
 }
 
-bool Surface::start()
+bool Surface::start(bool visible)
 {
     if (root_ != nullptr) return true;
     if (!state_machine_.dispatch(Event::BootCompleted)) return false;
     requested_state_.store(State::Idle, std::memory_order_relaxed);
     esp_brookesia::gui::lvgl::lock_thread();
     create_locked();
+    if (!visible) {
+        reveal_desktop_locked();
+    }
     esp_brookesia::gui::lvgl::unlock_thread();
     return root_ != nullptr && timer_ != nullptr;
+}
+
+void Surface::show_locked()
+{
+    if (root_ == nullptr || visual_state_ != State::Desktop) return;
+    if (!state_machine_.dispatch(Event::DesktopDismissed)) return;
+    requested_state_.store(State::Idle, std::memory_order_relaxed);
+    apply_state_locked(State::Idle);
+}
+
+bool Surface::visible_locked() const
+{
+    return root_ != nullptr && visual_state_ != State::Desktop;
+}
+
+void Surface::set_settings_handler(std::function<void()> handler)
+{
+    settings_handler_ = std::move(handler);
+}
+
+void Surface::on_settings(lv_event_t *event)
+{
+    auto *self = static_cast<Surface *>(lv_event_get_user_data(event));
+    if (self != nullptr && self->settings_handler_) self->settings_handler_();
 }
 
 void Surface::set_audio_level(float level) noexcept
@@ -114,6 +141,18 @@ void Surface::create_locked()
     lv_obj_set_style_text_color(status_, lv_color_hex(0x9AA3BE), 0);
     lv_obj_align(status_, LV_ALIGN_BOTTOM_MID, 0, -50);
 
+    auto *settings = lv_button_create(root_);
+    lv_obj_set_size(settings, 64, 64);
+    lv_obj_set_style_radius(settings, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(settings, lv_color_hex(0x1A2033), 0);
+    lv_obj_set_style_shadow_width(settings, 0, 0);
+    lv_obj_align(settings, LV_ALIGN_TOP_RIGHT, -20, 20);
+    lv_obj_add_event_cb(settings, on_settings, LV_EVENT_CLICKED, this);
+    auto *icon = lv_label_create(settings);
+    lv_label_set_text(icon, LV_SYMBOL_SETTINGS);
+    lv_obj_set_style_text_color(icon, lv_color_hex(0xC8D0EA), 0);
+    lv_obj_center(icon);
+
     apply_state_locked(State::Idle);
     timer_ = lv_timer_create(on_timer, 16, this);
 }
@@ -135,6 +174,8 @@ void Surface::update_locked()
     if (root_ == nullptr) return;
     const State requested = requested_state_.load(std::memory_order_relaxed);
     if (requested != visual_state_) apply_state_locked(requested);
+    // Hidden behind the desktop: skip the 60 fps animation work entirely.
+    if (visual_state_ == State::Desktop) return;
 
     const float target = audio_level_.load(std::memory_order_relaxed);
     smoothed_level_ += (target - smoothed_level_) * (target > smoothed_level_ ? 0.34F : 0.08F);
