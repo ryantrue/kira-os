@@ -35,11 +35,10 @@ jobs:
           done
           cp -a components/gen_bmgr_codes /tmp/ctx/gen_bmgr_codes
           cp sdkconfig dependencies.lock /tmp/ctx/
-          cat > /tmp/ctx/BOOT_LOG_REQUIRED.txt <<'EOF'
-Hardware UART log is intentionally not synthesized by CI.
-Capture on the physical ESP32-P4 after flashing 5baa2d6, from "Starting Kira OS"
-through "kira_boot: system stable" (or watchdog), including all I2S/ES8311/ES7210/audio lines.
-EOF
+          printf '%s\n' \
+            'Hardware UART log is intentionally not synthesized by CI.' \
+            'Capture on the physical ESP32-P4 after flashing 5baa2d6, from Starting Kira OS through kira_boot: system stable (or watchdog).' \
+            'Include all I2S/ES8311/ES7210/audio lines.' > /tmp/ctx/BOOT_LOG_REQUIRED.txt
           cd /tmp/ctx
           zip -qr "$GITHUB_WORKSPACE/kira-claude-context-5baa2d6.zip" .
       - uses: actions/upload-artifact@v4
