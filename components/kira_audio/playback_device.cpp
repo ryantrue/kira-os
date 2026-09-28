@@ -19,6 +19,7 @@
 #include "sdkconfig.h"
 
 #include "brookesia/hal_interface.hpp"
+#include "brookesia/hal_interface/device.hpp"  // Device is not part of the umbrella header
 #include "brookesia/hal_interface/interfaces/audio/codec_player.hpp"
 #include "brookesia/hal_interface/interfaces/audio/processor.hpp"
 
@@ -205,7 +206,7 @@ private:
             return;
         }
         if (url.rfind("tone://", 0) == 0) {
-            play_tone(codec.get(), static_cast<uint32_t>(std::strtoul(url.c_str() + 7, nullptr, 10)));
+            play_tone(&*codec, static_cast<uint32_t>(std::strtoul(url.c_str() + 7, nullptr, 10)));
             return;
         }
         const std::string path = url_to_path(url);
