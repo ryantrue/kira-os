@@ -121,8 +121,8 @@ def test_voice_pipeline() -> None:
     require("microphone_status().muted" in session, "a closed microphone gate does not block voice activation")
     require("pdMS_TO_TICKS(120000)" in session, "voice session has no bounded maximum duration")
 
-    for token in ("CodecRecorderIface", "ESP_OPUS_ENC_CONFIG_DEFAULT", "CodecPlayerIface",
-                  "ESP_OPUS_DEC_CONFIG_DEFAULT", '"Audio:Encoder:0"', '"Audio:Decoder:0"'):
+    for token in ("CodecRecorderIface", "esp_opus_enc_config_t", "CodecPlayerIface",
+                  "esp_opus_dec_cfg_t", '"Audio:Encoder:0"', '"Audio:Decoder:0"'):
         require(token in audio, f"raw voice device is missing {token}")
     require("!authorized || config.enable_afe" in audio, "encoder is not gated or still accepts unavailable AFE")
     require('"voice_device.cpp"' in audio_cmake, "voice device is not built")
