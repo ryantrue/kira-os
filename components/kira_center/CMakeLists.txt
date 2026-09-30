@@ -1,6 +1,4 @@
-idf_component_register(
-    SRCS "center.cpp"
-    INCLUDE_DIRS "include"
-    PRIV_REQUIRES kira_platform kira_surface kira_audio kira_boot
-)
-target_compile_features(${COMPONENT_LIB} PUBLIC cxx_std_23)
+# Kira Center was the 0.2.x standalone settings overlay.
+# Kira 0.3.x integrates configuration into the system Settings app, so this
+# legacy component intentionally builds no sources while the migration lands.
+idf_component_register()
