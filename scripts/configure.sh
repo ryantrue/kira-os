@@ -36,5 +36,9 @@ resolve_components
 idf.py gen-bmgr-config -c boards -b esp32_p4_wifi6_touch_lcd_4b
 rm -f sdkconfig
 resolve_components
+python3 tools/kira_settings_source_patch.py .
+# Reconfigure once more so the staged stock Settings package includes Kira's
+# navigation source before the firmware build.
+idf.py reconfigure
 verify_revision_profile
 echo "Kira configure: OK (rev1.3 profile verified)"
