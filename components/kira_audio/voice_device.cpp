@@ -72,11 +72,17 @@ public:
             cleanup();
             return false;
         }
-        auto opus = ESP_OPUS_ENC_CONFIG_DEFAULT();
+        esp_opus_enc_config_t opus{};
         opus.sample_rate = 16000;
         opus.channel = 1;
+        opus.bits_per_sample = 16;
         opus.bitrate = 24000;
         opus.frame_duration = ESP_OPUS_ENC_FRAME_DURATION_60_MS;
+        opus.application_mode = ESP_OPUS_ENC_APPLICATION_VOIP;
+        opus.complexity = 0;
+        opus.enable_fec = false;
+        opus.enable_dtx = false;
+        opus.enable_vbr = false;
         if (esp_opus_enc_open(&opus, sizeof(opus), &encoder_) != ESP_AUDIO_ERR_OK) {
             cleanup();
             return false;
@@ -114,7 +120,9 @@ public:
             callbacks_.recorder_data(reinterpret_cast<uint8_t *>(mono_.data()), mono_.size() * sizeof(int16_t));
         }
         esp_audio_enc_in_frame_t input{reinterpret_cast<uint8_t *>(mono_.data()), static_cast<uint32_t>(mono_.size() * sizeof(int16_t))};
-        esp_audio_enc_out_frame_t output{data, static_cast<uint32_t>(size), 0};
+        esp_audio_enc_out_frame_t output{};
+        output.buffer = data;
+        output.len = static_cast<uint32_t>(size);
         if (esp_opus_enc_process(encoder_, &input, &output) != ESP_AUDIO_ERR_OK) return -1;
         if (++frames_ == 1) ESP_LOGI(TAG, "capture first frame encoded; uplink authorized");
         return static_cast<int>(output.encoded_bytes);
@@ -159,7 +167,7 @@ public:
             config.general.sample_bits != 16 || config.general.sample_rate != 16000 || !reserve_speaker()) return false;
         speaker_owned_ = true;
         player_ = hal::acquire_first_interface<hal::audio::CodecPlayerIface>();
-        auto opus = ESP_OPUS_DEC_CONFIG_DEFAULT();
+        esp_opus_dec_cfg_t opus{};
         opus.sample_rate = 16000;
         opus.channel = 1;
         opus.frame_duration = ESP_OPUS_DEC_FRAME_DURATION_60_MS;
