@@ -1,0 +1,21 @@
+dependencies:
+  espressif/brookesia_agent_manager:
+    require: public
+    version: 0.8.*
+  espressif/cjson:
+    require: private
+    rules:
+    - if: idf_version >=6.0
+    version: ^1.7.19
+  espressif/esp_peer:
+    require: private
+    version: ^1.2.2
+description: ESP-Brookesia OpenAI Agent which provides OpenAI API integration, peer-to-peer
+  communication, and agent management.
+issues: https://github.com/espressif/esp-brookesia/issues
+repository: git://github.com/espressif/esp-brookesia.git
+repository_info:
+  commit_sha: f5cb90b44d687013de08109d3b6e9603431a439e
+  path: service/agent/brookesia_agent_openai
+url: https://github.com/espressif/esp-brookesia/tree/master/service/agent/brookesia_agent_openai
+version: 0.8.1

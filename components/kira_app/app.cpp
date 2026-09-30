@@ -7,6 +7,7 @@
 #include "kira/app.hpp"
 #include "kira/platform/version.hpp"
 #include "kira/surface.hpp"
+#include "kira/voice_session.hpp"
 
 namespace kira::app {
 namespace {
@@ -57,15 +58,22 @@ public:
                 }
             }
         });
+        surface.set_tap_handler([] { kira::voice::activate(); });
         if (!surface.start()) {
             context_ = nullptr;
             return std::unexpected("Failed to create Kira surface");
+        }
+        if (!kira::voice::initialize()) {
+            surface.stop();
+            context_ = nullptr;
+            return std::unexpected("Failed to create Kira voice worker");
         }
         return {};
     }
 
     std::expected<void, std::string> on_pause(core::AppContext &) override
     {
+        kira::voice::stop();
         kira::Surface::instance().pause();
         return {};
     }
@@ -78,6 +86,7 @@ public:
 
     std::expected<void, std::string> on_stop(core::AppContext &) override
     {
+        kira::voice::stop();
         kira::Surface::instance().stop();
         context_ = nullptr;
         return {};

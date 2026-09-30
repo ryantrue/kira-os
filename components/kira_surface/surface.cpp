@@ -28,9 +28,9 @@ const char *state_text(State state)
     case State::Listening: return "Listening";
     case State::Thinking: return "Thinking";
     case State::Speaking: return "Speaking";
-    case State::Offline: return "Offline - local wake remains active";
+    case State::Offline: return "Offline - connect Wi-Fi to start a conversation";
     case State::Error: return "Kira needs attention";
-    default: return "Say Hey Kira or tap for apps";
+    default: return "Tap the sphere to talk";
     }
 }
 } // namespace
@@ -47,6 +47,11 @@ bool Surface::start()
     state_machine_ = StateMachine{};
     if (!state_machine_.dispatch(Event::BootCompleted)) return false;
     requested_state_.store(State::Idle, std::memory_order_relaxed);
+    {
+        std::lock_guard lock(status_mutex_);
+        requested_status_ = state_text(State::Idle);
+        displayed_status_.clear();
+    }
     visual_state_ = State::Booting;
     paused_ = false;
     smoothed_level_ = 0.0F;
@@ -64,6 +69,12 @@ void Surface::stop()
     esp_brookesia::gui::lvgl::unlock_thread();
     close_handler_ = {};
     settings_handler_ = {};
+    tap_handler_ = {};
+    {
+        std::lock_guard lock(status_mutex_);
+        requested_status_.clear();
+        displayed_status_.clear();
+    }
     state_machine_ = StateMachine{};
     requested_state_.store(State::Booting, std::memory_order_relaxed);
     visual_state_ = State::Booting;
@@ -98,10 +109,27 @@ void Surface::set_settings_handler(std::function<void()> handler)
     settings_handler_ = std::move(handler);
 }
 
+void Surface::set_tap_handler(std::function<void()> handler)
+{
+    tap_handler_ = std::move(handler);
+}
+
+void Surface::set_status(std::string text)
+{
+    std::lock_guard lock(status_mutex_);
+    requested_status_ = std::move(text);
+}
+
 void Surface::on_settings(lv_event_t *event)
 {
     auto *self = static_cast<Surface *>(lv_event_get_user_data(event));
     if (self != nullptr && self->settings_handler_) self->settings_handler_();
+}
+
+void Surface::on_close(lv_event_t *event)
+{
+    auto *self = static_cast<Surface *>(lv_event_get_user_data(event));
+    if (self != nullptr && self->close_handler_) self->close_handler_();
 }
 
 void Surface::set_audio_level(float level) noexcept
@@ -178,6 +206,18 @@ void Surface::create_locked()
     lv_obj_set_style_text_color(icon, lv_color_hex(0xC8D0EA), 0);
     lv_obj_center(icon);
 
+    auto *close = lv_button_create(root_);
+    lv_obj_set_size(close, 64, 64);
+    lv_obj_set_style_radius(close, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(close, lv_color_hex(0x1A2033), 0);
+    lv_obj_set_style_shadow_width(close, 0, 0);
+    lv_obj_align(close, LV_ALIGN_TOP_LEFT, 20, 20);
+    lv_obj_add_event_cb(close, on_close, LV_EVENT_CLICKED, this);
+    auto *close_icon = lv_label_create(close);
+    lv_label_set_text(close_icon, LV_SYMBOL_CLOSE);
+    lv_obj_set_style_text_color(close_icon, lv_color_hex(0xC8D0EA), 0);
+    lv_obj_center(close_icon);
+
     apply_state_locked(State::Idle);
     timer_ = lv_timer_create(on_timer, 16, this);
 }
@@ -191,7 +231,7 @@ void Surface::on_timer(lv_timer_t *timer)
 void Surface::on_tap(lv_event_t *event)
 {
     auto *self = static_cast<Surface *>(lv_event_get_user_data(event));
-    if (self != nullptr && self->close_handler_) self->close_handler_();
+    if (self != nullptr && self->tap_handler_) self->tap_handler_();
 }
 
 void Surface::update_locked()
@@ -199,6 +239,15 @@ void Surface::update_locked()
     if (root_ == nullptr || paused_) return;
     const State requested = requested_state_.load(std::memory_order_relaxed);
     if (requested != visual_state_) apply_state_locked(requested);
+    std::string next_status;
+    {
+        std::lock_guard lock(status_mutex_);
+        next_status = requested_status_;
+    }
+    if (next_status != displayed_status_) {
+        lv_label_set_text(status_, next_status.c_str());
+        displayed_status_ = std::move(next_status);
+    }
     // Hidden behind the desktop: skip the 60 fps animation work entirely.
     if (visual_state_ == State::Desktop) return;
 
@@ -227,7 +276,6 @@ void Surface::apply_state_locked(State state)
     lv_obj_set_style_shadow_color(halo_, color, 0);
     lv_obj_set_style_bg_color(sphere_, color, 0);
     lv_obj_set_style_shadow_color(sphere_, color, 0);
-    lv_label_set_text(status_, state_text(state));
 }
 
 void Surface::destroy_locked()
@@ -248,4 +296,3 @@ void Surface::destroy_locked()
 }
 
 } // namespace kira
-

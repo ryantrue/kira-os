@@ -1,4 +1,7 @@
 dependencies:
+  espressif/brookesia_agent_openai:
+    version: "0.8.1"
+    require: public
   espressif/brookesia_system_core:
     version: "0.8.*"
     require: public

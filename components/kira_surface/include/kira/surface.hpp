@@ -3,6 +3,8 @@
 
 #include <atomic>
 #include <functional>
+#include <mutex>
+#include <string>
 #include "kira/state_machine.hpp"
 
 struct _lv_obj_t;
@@ -23,8 +25,11 @@ public:
 
     void set_close_handler(std::function<void()> handler);
     void set_settings_handler(std::function<void()> handler);
+    void set_tap_handler(std::function<void()> handler);
     void set_audio_level(float normalized_level) noexcept;
     void set_state(State state) noexcept;
+    // Worker tasks publish text here; LVGL consumes it from its own timer.
+    void set_status(std::string text);
     [[nodiscard]] State state() const noexcept
     {
         return requested_state_.load(std::memory_order_relaxed);
@@ -34,6 +39,7 @@ private:
     Surface() = default;
     static void on_timer(_lv_timer_t *timer);
     static void on_tap(_lv_event_t *event);
+    static void on_close(_lv_event_t *event);
     static void on_settings(_lv_event_t *event);
     void create_locked();
     void destroy_locked();
@@ -52,6 +58,10 @@ private:
     _lv_timer_t *timer_ = nullptr;
     std::function<void()> close_handler_;
     std::function<void()> settings_handler_;
+    std::function<void()> tap_handler_;
+    std::mutex status_mutex_;
+    std::string requested_status_;
+    std::string displayed_status_;
     bool paused_ = false;
     float smoothed_level_ = 0.0F;
     float phase_ = 0.0F;

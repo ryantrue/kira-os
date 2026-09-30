@@ -114,7 +114,7 @@ public:
 
     bool play(const std::string &url) override
     {
-        stop();
+        if (!stop()) return false;
         std::lock_guard lock(mutex_);
         if (!opened_) {
             return false;
@@ -181,8 +181,8 @@ private:
         }
         self->run(url);
         self->task_ = nullptr;
-        self->running_ = false;
         self->notify(audio::PlayState::Idle);
+        self->running_ = false;
         vTaskDelete(nullptr);
     }
 
@@ -200,6 +200,13 @@ private:
 
     void run(const std::string &url)
     {
+        if (!kira::audio::reserve_speaker()) {
+            ESP_LOGW(TAG, "speaker is busy with a voice response");
+            return;
+        }
+        struct SpeakerLease {
+            ~SpeakerLease() { kira::audio::release_speaker(); }
+        } lease;
         auto codec = acquire_first_interface<audio::CodecPlayerIface>();
         if (!codec) {
             ESP_LOGE(TAG, "codec player unavailable");
