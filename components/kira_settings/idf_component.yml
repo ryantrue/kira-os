@@ -1,0 +1,4 @@
+dependencies:
+  espressif/brookesia_system_core:
+    version: "0.8.*"
+    require: public
