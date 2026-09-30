@@ -9,11 +9,10 @@
 #include "brookesia/system_super.hpp"
 
 #include "kira/boot.hpp"
-#include "kira/center.hpp"
+#include "kira/app.hpp"
 #include "kira/platform/logger.hpp"
 #include "kira/platform/settings.hpp"
 #include "kira/platform/version.hpp"
-#include "kira/surface.hpp"
 #include "modules/display.hpp"
 #include "modules/general_services.hpp"
 #include "private/utils.hpp"
@@ -60,14 +59,11 @@ extern "C" void app_main(void)
             start_result, "System start failed: %1%", start_result.error()
         );
 
-        // Auto-start controls only the assistant surface; the desktop, recovery
-        // and updates run regardless.
-        const bool show_kira = kira::platform::Settings::instance().autostart();
-        BROOKESIA_CHECK_FALSE_EXIT(
-            kira::Surface::instance().start(show_kira), "Failed to start Kira surface"
-        );
-        kira::center::start();
-        BROOKESIA_LOGI("Kira OS ready (assistant %1%)", show_kira ? "shown" : "hidden until opened");
+        // Kira is registered as a native System Super application. The launcher
+        // owns its start/pause/resume/stop lifecycle; no persistent top-layer
+        // assistant surface is created at boot.
+        kira::app::ensure_linked();
+        BROOKESIA_LOGI("Kira OS ready (assistant available as native app)");
     };
 
     BROOKESIA_THREAD_CONFIG_GUARD({
