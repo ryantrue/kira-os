@@ -88,6 +88,7 @@ def main():
     (OUT / "flash_args").write_text(flags + "\n" +
         "".join(f"{f['offset']} {f['name']}\n" for f in manifest["files"]))
     shutil.copyfile(ROOT / "dependencies.lock", OUT / "dependencies.lock")
+    shutil.copyfile(ROOT / "docs/installation-candidate.md", OUT / "INSTALL.md")
     print(f"Checked installation candidate: {OUT} ({commit})")
 
 

@@ -232,6 +232,10 @@ std::expected<void, std::string> SettingsApp::on_start(system::core::AppContext 
     stage_started_at = SteadyClock::now();
     subscribe_sntp_events();
     log_start_profile("subscribe_sntp_events", stage_started_at, start_profile_started_at);
+    result = kira::settings::Bridge::instance().start(context);
+    if (!result) {
+        return std::unexpected("Failed to start Kira settings: " + result.error());
+    }
     start_profile_succeeded = true;
     return {};
 }
@@ -239,6 +243,7 @@ std::expected<void, std::string> SettingsApp::on_start(system::core::AppContext 
 std::expected<void, std::string> SettingsApp::on_stop(system::core::AppContext &context)
 {
     BROOKESIA_LOG_TRACE_GUARD_WITH_THIS();
+    kira::settings::Bridge::instance().stop(context);
     ++wifi_operation_generation_;
     cancel_wifi_scan_retry_timer(context);
     if (pending_wifi_connected_hide_timer_id_ != system::core::INVALID_TIMER_ID) {
@@ -308,6 +313,9 @@ std::expected<void, std::string> SettingsApp::on_timer(
 )
 {
     BROOKESIA_LOG_TRACE_GUARD_WITH_THIS();
+    if (name == kira::settings::Bridge::TIMER_NAME) {
+        return kira::settings::Bridge::instance().poll(context);
+    }
     if (name == WIFI_SCAN_RETRY_TIMER_NAME) {
         if (timer_id != pending_wifi_scan_retry_timer_id_) {
             BROOKESIA_LOGW(
@@ -374,6 +382,9 @@ std::expected<void, std::string> SettingsApp::on_action(
 )
 {
     BROOKESIA_LOGD("Settings action: %1%", action);
+    if (action.starts_with("settings.kira.")) {
+        return kira::settings::Bridge::instance().action(context, action);
+    }
     std::string effective_action_storage;
     std::string_view effective_action = action;
     if (action == ACTION_HEADER_BACK) {
@@ -506,6 +517,7 @@ std::expected<void, std::string> SettingsApp::on_action(
         if (const auto page = get_navigation_page(effective_action); page.has_value()) {
             current_page_ = *page;
         }
+        kira::settings::Bridge::instance().set_active(context, current_page_ == PAGE_KIRA);
         if (current_page_ != PAGE_DEVICE) {
             reset_debug_entry_click_state();
         }

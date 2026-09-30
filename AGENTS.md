@@ -177,7 +177,8 @@ workarounds. Keep Kira-owned code small and replaceable.
 
 ## Product invariants
 
-- Wake-word processing is local.
+- Any future wake-word processing must remain local. Kira 0.3 uses explicit
+  tap-to-talk on rev1.3 because the compatible processor path is unavailable.
 - Audio must not be streamed remotely before activation.
 - Cloud credentials are runtime-provisioned, never compiled in.
 - Home Assistant is an optional application, not a shell dependency.
@@ -197,7 +198,28 @@ Put durable hardware/build knowledge in docs/, and update this file when a new
 constraint changes how agents must work.
 
 
-## Kira Center, platform and audio (0.2.0)
+## Kira 0.3 system integration
+
+- `components/kira_app` is a native System Super `IApp`/`IAppProvider`.
+  Pause/stop synchronously close the microphone upload gate; stop deletes the
+  Kira LVGL root and timer. The voice worker is a single reusable task so
+  repeated open/close does not create one task per app instance.
+- `components/brookesia_app_settings` is the pinned 0.8.3 product override.
+  Kira controls live inside that one stock Settings app and use the system
+  keyboard and message dialogs. Do not restore Kira Center or add an LVGL
+  keyboard.
+- `components/brookesia_agent_openai` is the pinned 0.8.1 product override.
+  It uses the current Realtime calls endpoint, accepts runtime credentials
+  without generic service-call logging, and disables AFE for rev1.3.
+- `components/kira_audio` publishes `Audio:Encoder:0` and `Audio:Decoder:0`
+  over the raw codec interfaces. Capture is explicit tap-to-talk; 0.3 does not
+  claim a local wake word while the compatible rev1.3 processor is unavailable.
+- `tools/test_system_integration.py` guards the wiring between native Kira,
+  stock Settings, system keyboard, raw codec pipeline and pinned overrides.
+
+See `docs/installation-candidate.md` and `docs/platform-capabilities.md`.
+
+## Legacy Kira Center and 0.2 platform
 
 - `components/kira_platform`: settings (NVS `kira_cfg`, cached in RAM, written
   by the worker task), version, SD card, logger, log sharing, Home Assistant,
@@ -217,4 +239,5 @@ constraint changes how agents must work.
   `sdmmc_host_init`/deinit wrap in `kira_platform/src/sd_host_shim.c`. Do not
   remove it while ESP-IDF lacks the guard (esp-idf#17889).
 
-See docs/kira-center.md.
+`components/kira_center` builds no sources in 0.3. See docs/kira-center.md only
+for the archived 0.2 behavior.

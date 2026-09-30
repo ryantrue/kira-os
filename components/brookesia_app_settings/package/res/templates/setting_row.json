@@ -6,6 +6,10 @@
         "commonProps": {
             "scrollable": false
         },
+        "bindings": {
+            "commonProps.disabled": "commonProps.disabled",
+            "commonProps.hidden": "commonProps.hidden"
+        },
         "styleRefs": [
             "app.listItem"
         ],

@@ -91,6 +91,8 @@ jobs:
           assert kira["overrides"]["."]["events"][0]["action"] == "settings.open.kira"
           assert sum(row["id"] == "kira" for row in rows) == 1
           PY
+      - name: Test Kira system integration
+        run: python3 tools/test_system_integration.py
 
   firmware:
     runs-on: ubuntu-24.04

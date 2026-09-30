@@ -4,17 +4,17 @@ Kira OS is a touch-first, voice-native operating environment for the
 Waveshare ESP32-P4-WIFI6-Touch-LCD-4B. It is built as a product on top of
 ESP-IDF 6.0 and ESP-Brookesia System Super 0.8, not as a Home Assistant panel.
 
-The default surface is Kira: an audio-reactive sphere that processes ambient
-audio locally and activates the cloud assistant only after the on-device
-`Hey, Kira` wake word. A tap opens the application desktop. The assistant stays
-available as a system service while applications are running.
+Kira is a native System Super launcher application. Its audio-reactive sphere
+starts a bounded voice conversation when tapped, opens the stock Settings app
+from the gear button, and releases its LVGL objects, timer and audio session when
+closed or paused.
 
 ## Product contract
 
-- The microphone front end and wake-word detector run locally at all times.
-- Audio is not sent to a remote service before wake-word activation.
-- Wake-word detection is a replaceable local provider. Revision 1.3 uses a
-  Kira-owned TFLite Micro provider because ESP-SR on ESP-IDF 6 requires P4 rev 3.
+- The microphone recorder is closed while Kira is idle. A tap explicitly opens
+  a voice session; pause, close, mute and timeout close its upload gate.
+- Kira never sends audio before explicit activation. A future wake-word provider
+  must run locally; 0.3.0 does not claim one on revision 1.3.
 - The desktop and BPK application model come from ESP-Brookesia System Super.
 - Home Assistant is an optional application, never a shell dependency.
 - OpenAI credentials are provisioned at runtime and are never compiled into an
@@ -24,17 +24,20 @@ available as a system service while applications are running.
 
 ## Status
 
-The repository is in hardware bring-up. The architecture, state machine, board
-descriptor, System Super boot flow, raw audio path, and first on-device Kira
-surface are established. The local TFLite Micro wake provider is the next
-audio milestone.
+Version 0.3.0 replaces the 0.2 Kira Center overlay with one native Kira app and
+Kira pages inside `brookesia.general.settings`. The product-owned raw audio
+adapter connects the board's `Audio:CodecRecorder` to the Brookesia OpenAI agent
+as mono Opus and decodes response Opus to `Audio:CodecPlayer`. Settings exposes
+only implemented capabilities: local microphone test/gain/software gate,
+speaker test, Home Assistant REST controls, SD status/format, diagnostics,
+recovery-backed updates, connectivity status and a read-only board-derived GPIO
+inspector.
 
-Version 0.2.0 adds Kira Center (floating K button or the gear on the Kira
-surface): assistant auto-start (off by default), AI provider settings, Home
-Assistant control, SD card info and FAT32 formatting, persistent logs with
-download over a Wi-Fi access point, and updates from GitHub Releases through
-recovery. It also restores the speaker on rev1.3. See
-[Kira Center](docs/kira-center.md).
+The last physical baseline remains 0.2.x. A green 0.3.0 CI build is a candidate
+for board acceptance, not evidence of runtime hardware verification. See the
+[installation candidate guide](docs/installation-candidate.md),
+[platform capabilities](docs/platform-capabilities.md), and the archived
+[0.2 Kira Center design](docs/kira-center.md).
 
 ## Toolchain
 

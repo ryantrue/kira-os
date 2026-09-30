@@ -30,12 +30,991 @@
             "children": [
                 {
                     "type": "label",
-                    "id": "status",
+                    "id": "notice",
                     "styleRefs": [
                         "app.caption"
                     ],
                     "labelProps": {
-                        "text": "Kira OS settings"
+                        "text": ""
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    },
+                    "bindings": {
+                        "labelProps.text": "labelProps.text"
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "assistant_section",
+                    "styleRefs": [
+                        "app.listItemTitle"
+                    ],
+                    "labelProps": {
+                        "text": "Assistant"
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "open",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.open"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Open Kira"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "autostart",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.autostart"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Start Kira after inactivity"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "idle",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.idle"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Inactivity timeout"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "ai_section",
+                    "styleRefs": [
+                        "app.listItemTitle"
+                    ],
+                    "labelProps": {
+                        "text": "Voice and AI"
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "provider",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.provider"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Voice provider: OpenAI"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "model",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.model"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Realtime model"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "key",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.key"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "API key: not set"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "microphone_section",
+                    "styleRefs": [
+                        "app.listItemTitle"
+                    ],
+                    "labelProps": {
+                        "text": "Microphone and speaker"
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "mic_status",
+                    "styleRefs": [
+                        "app.caption"
+                    ],
+                    "labelProps": {
+                        "text": "Microphone status has not been read yet."
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    },
+                    "bindings": {
+                        "labelProps.text": "labelProps.text"
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "mic_mute",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.mic_mute"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Close microphone software capture gate"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "mic_gain_down",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.mic_gain_down"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Reduce microphone gain"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "mic_gain_up",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.mic_gain_up"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Increase microphone gain"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "mic_test",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.mic_test"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Record and replay 3 seconds locally"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "tone",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.tone"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Play speaker test tone"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "ha_section",
+                    "styleRefs": [
+                        "app.listItemTitle"
+                    ],
+                    "labelProps": {
+                        "text": "Home Assistant"
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "ha_status",
+                    "styleRefs": [
+                        "app.caption"
+                    ],
+                    "labelProps": {
+                        "text": "Not connected."
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    },
+                    "bindings": {
+                        "labelProps.text": "labelProps.text"
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "ha_url",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.ha_url"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Address: not set"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "ha_token",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.ha_token"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "HA token: not set"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "ha_test",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.ha_test"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Test connection"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "ha_refresh",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.ha_refresh"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Refresh entities"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "entity0",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.entity0"
+                                }
+                            ],
+                            "commonProps": {
+                                "hidden": true
+                            }
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Entity"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "entity1",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.entity1"
+                                }
+                            ],
+                            "commonProps": {
+                                "hidden": true
+                            }
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Entity"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "entity2",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.entity2"
+                                }
+                            ],
+                            "commonProps": {
+                                "hidden": true
+                            }
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Entity"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "entity3",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.entity3"
+                                }
+                            ],
+                            "commonProps": {
+                                "hidden": true
+                            }
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Entity"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "entity4",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.entity4"
+                                }
+                            ],
+                            "commonProps": {
+                                "hidden": true
+                            }
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Entity"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "entity5",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.entity5"
+                                }
+                            ],
+                            "commonProps": {
+                                "hidden": true
+                            }
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Entity"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "entity6",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.entity6"
+                                }
+                            ],
+                            "commonProps": {
+                                "hidden": true
+                            }
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Entity"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "entity7",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.entity7"
+                                }
+                            ],
+                            "commonProps": {
+                                "hidden": true
+                            }
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Entity"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "ha_page",
+                    "styleRefs": [
+                        "app.caption"
+                    ],
+                    "labelProps": {
+                        "text": "Entities page 1/1"
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    },
+                    "bindings": {
+                        "labelProps.text": "labelProps.text"
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "ha_prev",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.ha_prev"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Previous entity page"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "ha_next",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.ha_next"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Next entity page"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "storage_section",
+                    "styleRefs": [
+                        "app.listItemTitle"
+                    ],
+                    "labelProps": {
+                        "text": "Storage / SD"
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "sd_status",
+                    "styleRefs": [
+                        "app.caption"
+                    ],
+                    "labelProps": {
+                        "text": "SD status has not been read yet."
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    },
+                    "bindings": {
+                        "labelProps.text": "labelProps.text"
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "sd_refresh",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.sd_refresh"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Refresh SD status"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "sd_format",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.sd_format"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Erase and format removable SD card"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "logs_section",
+                    "styleRefs": [
+                        "app.listItemTitle"
+                    ],
+                    "labelProps": {
+                        "text": "Logs / diagnostics"
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "log_enable",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.log_enable"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Save diagnostic logs"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "log_status",
+                    "styleRefs": [
+                        "app.caption"
+                    ],
+                    "labelProps": {
+                        "text": "Log status has not been read yet."
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    },
+                    "bindings": {
+                        "labelProps.text": "labelProps.text"
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "log_share",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.log_share"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Share logs over Wi-Fi"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "share_status",
+                    "styleRefs": [
+                        "app.caption"
+                    ],
+                    "labelProps": {
+                        "text": "Log sharing is stopped."
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    },
+                    "bindings": {
+                        "labelProps.text": "labelProps.text"
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "log_clear",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.log_clear"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Delete saved diagnostics"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "update_section",
+                    "styleRefs": [
+                        "app.listItemTitle"
+                    ],
+                    "labelProps": {
+                        "text": "Version / update"
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "version",
+                    "styleRefs": [
+                        "app.caption"
+                    ],
+                    "labelProps": {
+                        "text": "Current version"
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    },
+                    "bindings": {
+                        "labelProps.text": "labelProps.text"
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "update_status",
+                    "styleRefs": [
+                        "app.caption"
+                    ],
+                    "labelProps": {
+                        "text": "Updates have not been checked."
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    },
+                    "bindings": {
+                        "labelProps.text": "labelProps.text"
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "update_check",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.update_check"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Check for updates"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "update_install",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.kira.update_install"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Install verified update"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "connectivity_section",
+                    "styleRefs": [
+                        "app.listItemTitle"
+                    ],
+                    "labelProps": {
+                        "text": "Connectivity"
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "connectivity_status",
+                    "styleRefs": [
+                        "app.caption"
+                    ],
+                    "labelProps": {
+                        "text": "Connectivity status has not been read yet."
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    },
+                    "bindings": {
+                        "labelProps.text": "labelProps.text"
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "hardware_section",
+                    "styleRefs": [
+                        "app.listItemTitle"
+                    ],
+                    "labelProps": {
+                        "text": "GPIO / hardware (read-only)"
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "gpio_status",
+                    "styleRefs": [
+                        "app.caption"
+                    ],
+                    "labelProps": {
+                        "text": "Hardware inventory has not been read yet."
                     },
                     "placement": {
                         "mode": "flow",

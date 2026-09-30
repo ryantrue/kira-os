@@ -29,7 +29,7 @@ endif()
 list(APPEND _kira_defaults "${_kira_rev_defaults}")
 set(SDKCONFIG_DEFAULTS "${_kira_defaults}")
 # Firmware version, single source: version.txt -> PROJECT_VER -> esp_app_desc_t
-# -> Kira Center and the updater. Format "0.2.0+<commit>"; release tags are
+# -> native Kira, stock Settings and the updater. Format "0.3.0+<commit>"; release tags are
 # v<version.txt> (.github/workflows/release.yml checks this).
 file(STRINGS "${KIRA_ROOT}/version.txt" KIRA_VERSION LIMIT_COUNT 1)
 execute_process(

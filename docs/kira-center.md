@@ -1,6 +1,9 @@
-# Kira Center
+# Kira Center (legacy 0.2.x)
 
-Kira's own settings and tools. Version 0.2.0.
+This document records the physically tested 0.2.x overlay. The component is
+excluded from the 0.3 build. Kira 0.3 hosts its controls in the stock System
+Super Settings app; see [installation candidate](installation-candidate.md) and
+[platform capabilities](platform-capabilities.md).
 
 ## Where it lives and why
 

@@ -5,6 +5,7 @@
  */
 #include "private/settings_app_internal.hpp"
 #include "kira_settings_resources.hpp"
+#include "kira/settings_bridge.hpp"
 
 namespace esp_brookesia::app::settings {
 
