@@ -31,7 +31,7 @@ private:
         const esp_brookesia::system::core::KeyboardResult &result);
     std::expected<void, std::string> confirm(esp_brookesia::system::core::AppContext &context,
         std::string text, std::string detail, std::function<void()> accepted);
-    esp_brookesia::system::core::AppContext *context_ = nullptr;
+    esp_brookesia::system::core::AppContext *app_context_ = nullptr;
     esp_brookesia::system::core::KeyboardRequestId keyboard_request_id_ = esp_brookesia::system::core::INVALID_KEYBOARD_REQUEST_ID;
     esp_brookesia::system::core::MessageDialogRequestId dialog_request_id_ = esp_brookesia::system::core::INVALID_MESSAGE_DIALOG_REQUEST_ID;
     esp_brookesia::system::core::TimerId timer_id_ = esp_brookesia::system::core::INVALID_TIMER_ID;
