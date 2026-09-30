@@ -41,31 +41,56 @@ Surface &Surface::instance()
     return surface;
 }
 
-bool Surface::start(bool visible)
+bool Surface::start()
 {
     if (root_ != nullptr) return true;
+    state_machine_ = StateMachine{};
     if (!state_machine_.dispatch(Event::BootCompleted)) return false;
     requested_state_.store(State::Idle, std::memory_order_relaxed);
+    visual_state_ = State::Booting;
+    paused_ = false;
+    smoothed_level_ = 0.0F;
+    phase_ = 0.0F;
     esp_brookesia::gui::lvgl::lock_thread();
     create_locked();
-    if (!visible) {
-        reveal_desktop_locked();
-    }
     esp_brookesia::gui::lvgl::unlock_thread();
     return root_ != nullptr && timer_ != nullptr;
 }
 
-void Surface::show_locked()
+void Surface::stop()
 {
-    if (root_ == nullptr || visual_state_ != State::Desktop) return;
-    if (!state_machine_.dispatch(Event::DesktopDismissed)) return;
-    requested_state_.store(State::Idle, std::memory_order_relaxed);
-    apply_state_locked(State::Idle);
+    esp_brookesia::gui::lvgl::lock_thread();
+    destroy_locked();
+    esp_brookesia::gui::lvgl::unlock_thread();
+    close_handler_ = {};
+    settings_handler_ = {};
+    state_machine_ = StateMachine{};
+    requested_state_.store(State::Booting, std::memory_order_relaxed);
+    visual_state_ = State::Booting;
 }
 
-bool Surface::visible_locked() const
+void Surface::pause()
 {
-    return root_ != nullptr && visual_state_ != State::Desktop;
+    esp_brookesia::gui::lvgl::lock_thread();
+    paused_ = true;
+    if (root_ != nullptr) lv_obj_add_flag(root_, LV_OBJ_FLAG_HIDDEN);
+    esp_brookesia::gui::lvgl::unlock_thread();
+}
+
+void Surface::resume()
+{
+    esp_brookesia::gui::lvgl::lock_thread();
+    paused_ = false;
+    if (root_ != nullptr) {
+        lv_obj_clear_flag(root_, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_move_foreground(root_);
+    }
+    esp_brookesia::gui::lvgl::unlock_thread();
+}
+
+void Surface::set_close_handler(std::function<void()> handler)
+{
+    close_handler_ = std::move(handler);
 }
 
 void Surface::set_settings_handler(std::function<void()> handler)
@@ -166,12 +191,12 @@ void Surface::on_timer(lv_timer_t *timer)
 void Surface::on_tap(lv_event_t *event)
 {
     auto *self = static_cast<Surface *>(lv_event_get_user_data(event));
-    if (self != nullptr) self->reveal_desktop_locked();
+    if (self != nullptr && self->close_handler_) self->close_handler_();
 }
 
 void Surface::update_locked()
 {
-    if (root_ == nullptr) return;
+    if (root_ == nullptr || paused_) return;
     const State requested = requested_state_.load(std::memory_order_relaxed);
     if (requested != visual_state_) apply_state_locked(requested);
     // Hidden behind the desktop: skip the 60 fps animation work entirely.
@@ -194,10 +219,7 @@ void Surface::update_locked()
 void Surface::apply_state_locked(State state)
 {
     visual_state_ = state;
-    if (state == State::Desktop) {
-        lv_obj_add_flag(root_, LV_OBJ_FLAG_HIDDEN);
-        return;
-    }
+    if (state == State::Desktop) state = State::Idle;
     lv_obj_clear_flag(root_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(root_);
     const lv_color_t color = state_color(state);
@@ -208,12 +230,21 @@ void Surface::apply_state_locked(State state)
     lv_label_set_text(status_, state_text(state));
 }
 
-void Surface::reveal_desktop_locked()
+void Surface::destroy_locked()
 {
-    if (root_ == nullptr) return;
-    if (!state_machine_.dispatch(Event::ScreenTapped)) return;
-    requested_state_.store(State::Desktop, std::memory_order_relaxed);
-    apply_state_locked(State::Desktop);
+    if (timer_ != nullptr) {
+        lv_timer_delete(timer_);
+        timer_ = nullptr;
+    }
+    if (root_ != nullptr) {
+        lv_obj_delete(root_);
+    }
+    root_ = nullptr;
+    halo_ = nullptr;
+    sphere_ = nullptr;
+    core_ = nullptr;
+    status_ = nullptr;
+    paused_ = false;
 }
 
 } // namespace kira
