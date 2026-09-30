@@ -24,7 +24,8 @@ dependencies:
     version: "0.8.*"
     require: public
   espressif/brookesia_app_settings:
-    version: "0.8.*"
+    version: "0.8.3"
+    override_path: "../components/brookesia_app_settings"
     require: public
   espressif/brookesia_app_store:
     version: "0.8.*"

@@ -1,0 +1,27 @@
+dependencies:
+  espressif/brookesia_hal_interface:
+    require: public
+    version: 0.8.*
+  espressif/brookesia_service_device:
+    require: public
+    version: 0.8.*
+  espressif/brookesia_service_sntp:
+    require: public
+    version: 0.8.*
+  espressif/brookesia_service_storage:
+    require: public
+    version: 0.8.*
+  espressif/brookesia_service_wifi:
+    require: public
+    version: 0.8.*
+  espressif/brookesia_system_core:
+    require: public
+    version: 0.8.*
+description: ESP-Brookesia C++ settings app for the system-core app contract.
+issues: https://github.com/espressif/esp-brookesia/issues
+repository: git://github.com/espressif/esp-brookesia.git
+repository_info:
+  commit_sha: 01939b5e58fd50d18339b1c35fb74c4e808962c7
+  path: app/brookesia_app_settings
+url: https://github.com/espressif/esp-brookesia/tree/master/app/brookesia_app_settings
+version: 0.8.3
