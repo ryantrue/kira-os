@@ -69,6 +69,27 @@ jobs:
           target.write_text(json.dumps({"ui": {"keyboard": {"keyboardHeight": "166dp", "keyFontSize": "16sp"}}}))
           subprocess.run(["python3", "tools/kira_resource_overrides.py", str(stage)], check=True)
           assert json.loads(target.read_text())["ui"]["keyboard"]["keyboardHeight"] == "330dp"
+
+          settings = stage / "apps/brookesia.general.settings/res/screens/settings_home.json"
+          settings.parent.mkdir(parents=True)
+          settings.write_text(json.dumps({
+              "children": [{"children": [{
+                  "type": "templateRef", "id": "main_list",
+                  "slots": {"content": [{
+                      "type": "templateRef", "id": "more",
+                      "overrides": {
+                          ".": {"events": [{"type": "clicked", "action": "settings.open.more"}]},
+                          "title_box/title": {"labelProps": {"text": "More settings"}},
+                          "value_box/value": {"labelProps": {"text": ""}}
+                      }
+                  }]}
+              }]}]
+          }))
+          subprocess.run(["python3", "tools/kira_resource_overrides.py", str(stage)], check=True)
+          rows = json.loads(settings.read_text())["children"][0]["children"][0]["slots"]["content"]
+          kira = next(row for row in rows if row["id"] == "kira")
+          assert kira["overrides"]["."]["events"][0]["action"] == "settings.open.kira"
+          assert sum(row["id"] == "kira" for row in rows) == 1
           PY
 
   firmware:
