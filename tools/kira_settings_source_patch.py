@@ -42,6 +42,20 @@ replace_once(internal,
     '    ACTION_BACK_KIRA,\n};')
 
 replace_once(app,
+    'static constexpr const char *PAGE_DEBUG = "debug";',
+    'static constexpr const char *PAGE_DEBUG = "debug";\\n'
+    'static constexpr const char *PAGE_KIRA = "kira";\\n'
+    'static constexpr const char *ACTION_OPEN_KIRA = "settings.open.kira";\\n'
+    'static constexpr const char *ACTION_BACK_KIRA = "settings.back.kira";')
+replace_once(app,
+    'static constexpr std::array<const char *, 18> NAVIGATION_ACTIONS = {',
+    'static constexpr std::array<const char *, 20> NAVIGATION_ACTIONS = {')
+replace_once(app,
+    '    ACTION_OPEN_DEBUG,\\n};',
+    '    ACTION_OPEN_DEBUG,\\n'
+    '    ACTION_OPEN_KIRA,\\n'
+    '    ACTION_BACK_KIRA,\\n};')
+replace_once(app,
     'static constexpr std::array<NavigationTarget, 18> NAVIGATION_TARGETS = {',
     'static constexpr std::array<NavigationTarget, 20> NAVIGATION_TARGETS = {')
 replace_once(app,
