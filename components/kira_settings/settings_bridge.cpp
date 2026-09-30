@@ -75,7 +75,7 @@ Bridge &Bridge::instance() { static Bridge bridge; return bridge; }
 std::expected<void, std::string> Bridge::start(core::AppContext &context)
 {
     stop(context);
-    context_ = &context;
+    app_context_ = &context;
     std::vector<std::string> actions;
     for (const auto *name : {"autostart", "idle", "open", "tone", "provider", "model", "key",
              "ha_url", "ha_token", "ha_test", "ha_refresh", "ha_prev", "ha_next", "sd_refresh", "sd_format",
@@ -90,7 +90,7 @@ std::expected<void, std::string> Bridge::start(core::AppContext &context)
 void Bridge::stop(core::AppContext &context)
 {
     active_ = false;
-    context_ = nullptr; // Guard callbacks before cancelling shell requests.
+    app_context_ = nullptr; // Guard callbacks before cancelling shell requests.
     cancel_keyboard(context);
     if (dialog_request_id_ != core::INVALID_MESSAGE_DIALOG_REQUEST_ID) {
         (void)context.system_service().hide_message_dialog(dialog_request_id_);
@@ -128,7 +128,7 @@ std::expected<void, std::string> Bridge::request_text(core::AppContext &context,
     const auto provider = Settings::instance().ai_provider();
     auto request = context.system_service().show_keyboard(make_options(field),
         [this, field, provider](const core::KeyboardResult &result) {
-            if (context_ != nullptr && result.request_id == keyboard_request_id_) {
+            if (app_context_ != nullptr && result.request_id == keyboard_request_id_) {
                 handle_keyboard_result(field, provider, result);
             }
         });
@@ -164,7 +164,7 @@ void Bridge::handle_keyboard_result(Field field, std::string_view provider, cons
     }
     notice_ = err == ESP_OK ? "Setting saved. New AI settings apply to the next conversation."
                             : "Setting was rejected; check the value.";
-    if (context_ != nullptr) (void)poll(*context_);
+    if (app_context_ != nullptr) (void)poll(*app_context_);
 }
 
 std::expected<void, std::string> Bridge::confirm(core::AppContext &context, std::string text,
@@ -178,7 +178,7 @@ std::expected<void, std::string> Bridge::confirm(core::AppContext &context, std:
     }, [this, accepted = std::move(accepted)](const core::MessageDialogResult &result) {
         if (result.request_id != dialog_request_id_) return;
         dialog_request_id_ = core::INVALID_MESSAGE_DIALOG_REQUEST_ID;
-        if (context_ != nullptr && result.button_role == core::MessageDialogButtonRole::Destructive) accepted();
+        if (app_context_ != nullptr && result.button_role == core::MessageDialogButtonRole::Destructive) accepted();
     });
     if (!request) return std::unexpected(request.error());
     dialog_request_id_ = *request;
