@@ -20,6 +20,10 @@ if a.offset:
   if q["name"]==a.offset:print(hex(q["offset"]));sys.exit()
  sys.exit("partition not found")
 e=[]
+required={"otadata":(0x91000,0x2000),"recovery":(0x1A0000,0x200000),"ota_0":(0x3A0000,0x1000000),"littlefs_data":(0x13A0000,0xA00000)}
+actual={q["name"]:(q["offset"],q["size"]) for q in y}
+for name,layout in required.items():
+ if actual.get(name)!=layout:e+=[f"{name}: product layout changed (expected {layout})"]
 if [q["name"] for q in x]!=[q["name"] for q in y]:e+=["partition names/order differ"]
 for q,w in zip(x,y):
  for k in ("offset","size","flags"):

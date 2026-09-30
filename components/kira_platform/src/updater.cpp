@@ -96,7 +96,8 @@ std::string json_string(const cJSON *object, const char *key)
 bool parse_release(const std::string &body, Release &release, std::string &error)
 {
     cJSON *root = cJSON_Parse(body.c_str());
-    if (root == nullptr) {
+    if (!cJSON_IsObject(root)) {
+        cJSON_Delete(root);
         error = "Unreadable answer from GitHub";
         return false;
     }
@@ -118,7 +119,8 @@ bool parse_release(const std::string &body, Release &release, std::string &error
         if (name == asset_name) {
             release.asset_url = json_string(asset, "browser_download_url");
             const cJSON *size = cJSON_GetObjectItemCaseSensitive(asset, "size");
-            release.asset_size = cJSON_IsNumber(size) ? static_cast<uint32_t>(size->valuedouble) : 0;
+            release.asset_size = cJSON_IsNumber(size) && size->valuedouble > 0 &&
+                size->valuedouble <= MAX_IMAGE_BYTES ? static_cast<uint32_t>(size->valuedouble) : 0;
             const std::string digest = json_string(asset, "digest");
             if (digest.rfind("sha256:", 0) == 0) {
                 release.sha256_hex = lower(digest.substr(7));
@@ -130,6 +132,11 @@ bool parse_release(const std::string &body, Release &release, std::string &error
     cJSON_Delete(root);
     if (release.asset_url.empty()) {
         error = "Release " + release.version + " has no " + asset_name;
+        return false;
+    }
+    if (!release.asset_url.starts_with("https://") ||
+            (!release.checksum_url.empty() && !release.checksum_url.starts_with("https://"))) {
+        error = "Release downloads must use HTTPS";
         return false;
     }
     if (release.asset_size == 0 || release.asset_size > MAX_IMAGE_BYTES) {
@@ -284,11 +291,17 @@ void install_job()
     }
     if (psa_crypto_init() != PSA_SUCCESS) {
         fclose(file);
+        unlink(TMP_FILE);
         fail("Crypto init failed");
         return;
     }
     psa_hash_operation_t hash = PSA_HASH_OPERATION_INIT;
-    psa_hash_setup(&hash, PSA_ALG_SHA_256);
+    if (psa_hash_setup(&hash, PSA_ALG_SHA_256) != PSA_SUCCESS) {
+        fclose(file);
+        unlink(TMP_FILE);
+        fail("SHA-256 initialization failed");
+        return;
+    }
 
     publish([&](Status &s) {
         s.phase = Phase::Downloading;
@@ -299,6 +312,7 @@ void install_job()
     uint32_t received = 0;
     uint32_t last_report = 0;
     bool write_error = false;
+    bool hash_error = false;
     detail::HttpRequest request;
     request.url = release.asset_url;
     request.timeout_ms = 30000;
@@ -306,11 +320,14 @@ void install_job()
     const esp_err_t err = detail::http_stream(
         request,
         [&](const char *data, size_t size, size_t) {
-            if (received + size > MAX_IMAGE_BYTES || fwrite(data, 1, size, file) != size) {
+            if (size > release.asset_size - received || fwrite(data, 1, size, file) != size) {
                 write_error = true;
                 return false;
             }
-            psa_hash_update(&hash, reinterpret_cast<const uint8_t *>(data), size);
+            if (psa_hash_update(&hash, reinterpret_cast<const uint8_t *>(data), size) != PSA_SUCCESS) {
+                hash_error = true;
+                return false;
+            }
             received += size;
             if (received - last_report >= 64 * 1024) {
                 last_report = received;
@@ -319,14 +336,17 @@ void install_job()
             return true;
         },
         status);
+    const bool flushed = fflush(file) == 0 && fsync(fileno(file)) == 0;
     const bool closed = fclose(file) == 0;
     uint8_t digest[32] = {};
     size_t digest_length = 0;
-    psa_hash_finish(&hash, digest, sizeof(digest), &digest_length);
+    const bool hashed = psa_hash_finish(&hash, digest, sizeof(digest), &digest_length) == PSA_SUCCESS;
+    psa_hash_abort(&hash);
 
-    if (err != ESP_OK || write_error || !closed) {
+    if (err != ESP_OK || write_error || hash_error || !hashed || !flushed || !closed) {
         unlink(TMP_FILE);
-        fail(write_error ? "SD card write failed" : "Download failed");
+        fail((hash_error || !hashed) ? "SHA-256 failed" :
+             (write_error || !flushed || !closed) ? "SD card write failed" : "Download failed");
         return;
     }
     publish([received](Status &s) {
@@ -385,19 +405,34 @@ Status status()
 
 void check_async()
 {
-    publish([](Status &s) {
-        s.phase = Phase::Checking;
-        s.message = "Checking GitHub...";
-    });
+    {
+        std::lock_guard lock(s_mutex);
+        if (s_status.phase == Phase::Checking || s_status.phase == Phase::Downloading ||
+                s_status.phase == Phase::Verifying || s_status.phase == Phase::ReadyToInstall) {
+            return;
+        }
+        s_release = {};
+        s_status.phase = Phase::Checking;
+        s_status.latest.clear();
+        s_status.message = "Checking GitHub...";
+        ++s_status.generation;
+    }
     run("update_check", check_job);
 }
 
 void install_async()
 {
-    publish([](Status &s) {
-        s.phase = Phase::Downloading;
-        s.message = "Preparing download...";
-    });
+    {
+        std::lock_guard lock(s_mutex);
+        // Only a successful newer-release check can authorize this operation.
+        // The Settings caller separately obtains explicit user confirmation.
+        if (s_status.phase != Phase::Available || s_release.asset_url.empty()) {
+            return;
+        }
+        s_status.phase = Phase::Downloading;
+        s_status.message = "Preparing download...";
+        ++s_status.generation;
+    }
     run("update_install", install_job);
 }
 

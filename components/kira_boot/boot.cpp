@@ -17,6 +17,7 @@ namespace {
 constexpr const char *TAG = "kira_boot";
 esp_timer_handle_t s_stable_timer = nullptr;
 bool s_started = false;
+std::chrono::seconds s_stable_for{30};
 
 bool abnormal_reset(esp_reset_reason_t reason)
 {
@@ -79,7 +80,11 @@ esp_err_t reboot_into_recovery(kira_recovery_action_t action)
 
 void on_stable(void *)
 {
-    confirm_now();
+    const esp_err_t err = confirm_now();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "stable confirmation failed: %s", esp_err_to_name(err));
+        return;
+    }
     store_u8(KIRA_RECOVERY_KEY_CRASHES, 0);
     store_u8(KIRA_RECOVERY_KEY_RETRIES, 0);
     ESP_LOGI(TAG, "system stable");
@@ -112,13 +117,15 @@ esp_err_t start(std::chrono::seconds stable_for)
         return ESP_ERR_INVALID_STATE;
     }
     s_started = true;
+    s_stable_for = stable_for;
 
     esp_err_t err = nvs_flash_init();
     if (err != ESP_OK) {
         ESP_LOGW(TAG, "NVS unavailable (%s); crash-loop detection disabled", esp_err_to_name(err));
     } else {
         const esp_reset_reason_t reason = esp_reset_reason();
-        uint8_t crashes = abnormal_reset(reason) ? load_u8(KIRA_RECOVERY_KEY_CRASHES) + 1 : 0;
+        const auto previous = load_u8(KIRA_RECOVERY_KEY_CRASHES);
+        uint8_t crashes = abnormal_reset(reason) ? (previous < UINT8_MAX ? previous + 1 : UINT8_MAX) : 0;
         store_u8(KIRA_RECOVERY_KEY_CRASHES, crashes);
         if (crashes >= KIRA_RECOVERY_CRASH_LOOP_THRESHOLD) {
             ESP_LOGE(TAG, "%u consecutive crashes, handing over to recovery", crashes);
@@ -128,19 +135,33 @@ esp_err_t start(std::chrono::seconds stable_for)
     }
 
     if (pending_verification()) {
-        ESP_LOGW(TAG, "running an unconfirmed update; confirming after %lld s of stable operation",
+        ESP_LOGW(TAG, "running an unconfirmed update; waiting for ready, then %lld s of stable operation",
                  static_cast<long long>(stable_for.count()));
+    }
+
+    return ESP_OK;
+}
+
+esp_err_t mark_ready()
+{
+    if (!s_started || s_stable_timer != nullptr) {
+        return ESP_ERR_INVALID_STATE;
     }
 
     esp_timer_create_args_t args = {};
     args.callback = &on_stable;
     args.name = "kira_boot_stable";
-    err = esp_timer_create(&args, &s_stable_timer);
+    esp_err_t err = esp_timer_create(&args, &s_stable_timer);
     if (err != ESP_OK) {
         return err;
     }
-    const auto us = std::chrono::duration_cast<std::chrono::microseconds>(stable_for).count();
-    return esp_timer_start_once(s_stable_timer, static_cast<uint64_t>(us));
+    const auto us = std::chrono::duration_cast<std::chrono::microseconds>(s_stable_for).count();
+    err = esp_timer_start_once(s_stable_timer, static_cast<uint64_t>(us));
+    if (err != ESP_OK) {
+        esp_timer_delete(s_stable_timer);
+        s_stable_timer = nullptr;
+    }
+    return err;
 }
 
 esp_err_t request_install() { return reboot_into_recovery(KIRA_RECOVERY_ACTION_INSTALL); }

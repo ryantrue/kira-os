@@ -17,6 +17,7 @@ struct HttpRequest {
     std::vector<std::pair<std::string, std::string>> headers;
     std::string body;
     int timeout_ms = 15000;
+    bool follow_redirects = true;
 };
 
 struct HttpResponse {

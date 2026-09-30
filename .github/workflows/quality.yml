@@ -109,6 +109,7 @@ jobs:
         run: |
           . "$IDF_PATH/export.sh"
           bash scripts/configure.sh
+          python3 tools/test_board_metadata.py
       - name: Build Kira OS
         shell: bash
         run: |
@@ -125,6 +126,7 @@ jobs:
         run: |
           . "$IDF_PATH/export.sh"
           bash scripts/ci-report.sh
+          python3 scripts/package-candidate.py
       - name: Upload build report
         if: always()
         uses: actions/upload-artifact@v4
@@ -174,10 +176,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kira-os-esp32p4-rev1-3
-          path: |
-            build/*.bin
-            build/bootloader/*.bin
-            build/partition_table/*.bin
-            build/flash_args
-            recovery/build/kira_recovery.bin
-            recovery/build/partition_table/partition-table.bin
+          path: build/installation-candidate/
+          if-no-files-found: error

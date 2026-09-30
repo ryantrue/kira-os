@@ -58,6 +58,10 @@ extern "C" void app_main(void)
         BROOKESIA_CHECK_FALSE_EXIT(
             start_result, "System start failed: %1%", start_result.error()
         );
+        const esp_err_t boot_ready = kira::boot::mark_ready();
+        if (boot_ready != ESP_OK) {
+            BROOKESIA_LOGW("Failed to arm stable confirmation: %1%", esp_err_to_name(boot_ready));
+        }
 
         // Kira is registered as a native System Super application. The launcher
         // owns its start/pause/resume/stop lifecycle; no persistent top-layer

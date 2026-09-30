@@ -12,6 +12,7 @@
 
 #include "kira/platform/logger.hpp"
 #include "kira/platform/worker.hpp"
+#include "kira_board_metadata.hpp"
 
 // ESP Board Manager owns the mounted card (device "fs_sdcard"). Kira does not
 // declare a component dependency on it: its manifest has $CONFIG{ESP_BOARD_DEV_*}
@@ -34,18 +35,6 @@ constexpr const char *DEVICE_NAME = "fs_sdcard";
 struct BoardSdHandle {
     sdmmc_card_t *card;
 };
-
-// Mirror of the fs_sdcard entry in boards/.../board_devices.yaml.
-constexpr int SD_SLOT = SDMMC_HOST_SLOT_0;
-constexpr int SD_FREQ_KHZ = SDMMC_FREQ_HIGHSPEED;
-constexpr int SD_BUS_WIDTH = 4;
-constexpr int SD_LDO_CHANNEL = 4;
-constexpr gpio_num_t SD_CLK = GPIO_NUM_43;
-constexpr gpio_num_t SD_CMD = GPIO_NUM_44;
-constexpr gpio_num_t SD_D0 = GPIO_NUM_39;
-constexpr gpio_num_t SD_D1 = GPIO_NUM_40;
-constexpr gpio_num_t SD_D2 = GPIO_NUM_41;
-constexpr gpio_num_t SD_D3 = GPIO_NUM_42;
 
 std::mutex s_mutex;
 Status s_status;
@@ -91,12 +80,12 @@ esp_err_t format_mounted(sdmmc_card_t *card)
 esp_err_t format_unmounted()
 {
     sdmmc_host_t host = SDMMC_HOST_DEFAULT();
-    host.slot = SD_SLOT;
-    host.max_freq_khz = SD_FREQ_KHZ;
+    host.slot = board_metadata::sd_slot;
+    host.max_freq_khz = board_metadata::sd_frequency;
 
     sd_pwr_ctrl_handle_t pwr_ctrl = nullptr;
     sd_pwr_ctrl_ldo_config_t ldo_config = {};
-    ldo_config.ldo_chan_id = SD_LDO_CHANNEL;
+    ldo_config.ldo_chan_id = board_metadata::sd_ldo_channel;
     esp_err_t err = sd_pwr_ctrl_new_on_chip_ldo(&ldo_config, &pwr_ctrl);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "SD power control: %s", esp_err_to_name(err));
@@ -105,13 +94,13 @@ esp_err_t format_unmounted()
     host.pwr_ctrl_handle = pwr_ctrl;
 
     sdmmc_slot_config_t slot = SDMMC_SLOT_CONFIG_DEFAULT();
-    slot.clk = SD_CLK;
-    slot.cmd = SD_CMD;
-    slot.d0 = SD_D0;
-    slot.d1 = SD_D1;
-    slot.d2 = SD_D2;
-    slot.d3 = SD_D3;
-    slot.width = SD_BUS_WIDTH;
+    slot.clk = static_cast<gpio_num_t>(board_metadata::sd_clk);
+    slot.cmd = static_cast<gpio_num_t>(board_metadata::sd_cmd);
+    slot.d0 = static_cast<gpio_num_t>(board_metadata::sd_d0);
+    slot.d1 = static_cast<gpio_num_t>(board_metadata::sd_d1);
+    slot.d2 = static_cast<gpio_num_t>(board_metadata::sd_d2);
+    slot.d3 = static_cast<gpio_num_t>(board_metadata::sd_d3);
+    slot.width = board_metadata::sd_bus_width;
     slot.flags = SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
 
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {};
@@ -123,7 +112,7 @@ esp_err_t format_unmounted()
     ESP_LOGW(TAG, "mounting with format_if_mount_failed to create a FAT volume");
     err = esp_vfs_fat_sdmmc_mount(MOUNT_POINT, &host, &slot, &mount_config, &card);
     if (err == ESP_OK) {
-        esp_vfs_fat_sdcard_unmount(MOUNT_POINT, card);
+        err = esp_vfs_fat_sdcard_unmount(MOUNT_POINT, card);
     } else {
         ESP_LOGE(TAG, "format failed: %s", esp_err_to_name(err));
     }
@@ -157,9 +146,10 @@ void format_job()
     logger::pause_sd(false);
     if (err == ESP_OK) {
         ESP_LOGI(TAG, "card formatted");
-        refresh_now("Formatted as FAT. Apps see the card after a restart.");
+        refresh_now("Formatted as FAT; card mounted and refreshed.");
     } else {
-        refresh_now("Format failed; see the log");
+        const std::string message = std::string("Format failed: ") + esp_err_to_name(err);
+        refresh_now(message.c_str());
     }
     publish([](Status &s) { s.busy = false; });
 }
@@ -181,7 +171,12 @@ Status status()
 
 void refresh_async()
 {
-    publish([](Status &s) { s.busy = true; });
+    {
+        std::lock_guard lock(s_mutex);
+        if (s_status.busy) { return; }
+        s_status.busy = true;
+        ++s_status.generation;
+    }
     if (!submit_job("sd_refresh", [] {
             refresh_now(nullptr);
             publish([](Status &s) { s.busy = false; });
@@ -192,7 +187,13 @@ void refresh_async()
 
 void format_async()
 {
-    publish([](Status &s) { s.busy = true; s.message = "Formatting..."; });
+    {
+        std::lock_guard lock(s_mutex);
+        if (s_status.busy) { return; }
+        s_status.busy = true;
+        s_status.message = "Formatting...";
+        ++s_status.generation;
+    }
     if (!submit_job("sd_format", format_job)) {
         publish([](Status &s) { s.busy = false; s.message = "Busy, try again"; });
     }

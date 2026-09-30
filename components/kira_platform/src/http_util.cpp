@@ -59,6 +59,7 @@ esp_http_client_handle_t open_client(const HttpRequest &request, StreamContext *
     config.buffer_size = 4096;
     config.buffer_size_tx = 2048;
     config.max_redirection_count = 5;
+    config.disable_auto_redirect = !request.follow_redirects;
     config.user_agent = "kira-os";
     esp_http_client_handle_t client = esp_http_client_init(&config);
     if (client == nullptr) {

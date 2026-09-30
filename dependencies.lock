@@ -55,35 +55,28 @@ dependencies:
       type: service
     version: 0.8.2
   espressif/brookesia_app_settings:
-    component_hash: 46dd5de734a74672203240420fd52967b3f61f9882b600813d24b1fccd3204a5
     dependencies:
     - name: espressif/brookesia_hal_interface
-      registry_url: https://components.espressif.com
-      require: private
+      require: public
       version: 0.8.*
     - name: espressif/brookesia_service_device
-      registry_url: https://components.espressif.com
-      require: private
+      require: public
       version: 0.8.*
     - name: espressif/brookesia_service_sntp
-      registry_url: https://components.espressif.com
-      require: private
+      require: public
       version: 0.8.*
     - name: espressif/brookesia_service_storage
-      registry_url: https://components.espressif.com
-      require: private
+      require: public
       version: 0.8.*
     - name: espressif/brookesia_service_wifi
-      registry_url: https://components.espressif.com
-      require: private
+      require: public
       version: 0.8.*
     - name: espressif/brookesia_system_core
-      registry_url: https://components.espressif.com
-      require: private
+      require: public
       version: 0.8.*
     source:
-      registry_url: https://components.espressif.com/
-      type: service
+      path: components/brookesia_app_settings
+      type: local
     version: 0.8.3
   espressif/brookesia_app_store:
     component_hash: ad0bbb0e101e79c88cf1686fe7dc27c3428e8499451ae46b5cac744845eb5036
@@ -1017,6 +1010,6 @@ direct_dependencies:
 - idf
 - waveshare/esp32_p4_wifi6_touch_lcd_4b
 - waveshare/esp_lcd_st7703
-manifest_hash: a561854927865ab09dfa08d339109e4d8b1ae58031b560a57277806b25d4dffd
+manifest_hash: 4e717557aaac9ca4ca6812b0ddd69e87b117b1eca714e3b380d1aff500d7bc80
 target: esp32p4
 version: 3.0.0

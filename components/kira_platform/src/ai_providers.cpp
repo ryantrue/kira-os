@@ -12,7 +12,7 @@ constexpr std::array<AiProvider, 5> PROVIDERS{{
     {"anthropic", "Anthropic Claude", "claude-sonnet-4-5", true, false, false},
     {"xai", "xAI Grok", "grok-4", true, false, false},
     {"google", "Google Gemini", "gemini-2.5-flash", true, false, false},
-    {"kira_brain", "Kira Brain (home server)", "auto", false, true, true},
+    {"kira_brain", "Kira Brain (home server)", "auto", false, true, false},
 }};
 
 }  // namespace

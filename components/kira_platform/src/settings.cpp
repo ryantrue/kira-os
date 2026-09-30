@@ -169,6 +169,9 @@ std::string Settings::ai_model() const
 
 esp_err_t Settings::set_ai_model(std::string_view model)
 {
+    if (model.empty() || model.size() >= MAX_VALUE) {
+        return ESP_ERR_INVALID_ARG;
+    }
     std::lock_guard lock(mutex_);
     ai_model_ = std::string(model);
     persist_str(KEY_AI_MODEL, ai_model_);
@@ -183,6 +186,9 @@ std::string Settings::ai_endpoint() const
 
 esp_err_t Settings::set_ai_endpoint(std::string_view url)
 {
+    if (url.size() >= MAX_VALUE) {
+        return ESP_ERR_INVALID_SIZE;
+    }
     std::lock_guard lock(mutex_);
     ai_endpoint_ = std::string(url);
     persist_str(KEY_AI_ENDPOINT, ai_endpoint_);
@@ -209,12 +215,15 @@ esp_err_t Settings::set_ai_key(std::string_view provider_id, std::string_view ke
     if (key.size() >= MAX_VALUE) {
         return ESP_ERR_INVALID_SIZE;
     }
-    std::lock_guard lock(mutex_);
+    // Empty keyboard submissions preserve provisioned credentials.
     if (key.empty()) {
-        ai_keys_.erase(std::string(provider_id));
-    } else {
-        ai_keys_[std::string(provider_id)] = std::string(key);
+        return ESP_OK;
     }
+    if (key.find_first_of("\r\n") != std::string_view::npos) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    std::lock_guard lock(mutex_);
+    ai_keys_[std::string(provider_id)] = std::string(key);
     persist_str(key_name(provider_id), std::string(key));
     return ESP_OK;
 }
@@ -241,6 +250,16 @@ std::string Settings::ha_url() const
 
 esp_err_t Settings::set_ha_url(std::string_view url)
 {
+    if (url.size() >= MAX_VALUE) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+    if (!url.empty()) {
+        const size_t prefix = url.starts_with("https://") ? 8 : url.starts_with("http://") ? 7 : 0;
+        if (prefix == 0 || url.size() <= prefix || url[prefix] == '/' ||
+                url.find_first_of(" \t\r\n@?#") != std::string_view::npos) {
+            return ESP_ERR_INVALID_ARG;
+        }
+    }
     std::lock_guard lock(mutex_);
     ha_url_ = std::string(url);
     while (!ha_url_.empty() && ha_url_.back() == '/') {
@@ -265,6 +284,12 @@ esp_err_t Settings::set_ha_token(std::string_view token)
 {
     if (token.size() >= MAX_VALUE) {
         return ESP_ERR_INVALID_SIZE;
+    }
+    if (token.empty()) {
+        return ESP_OK;
+    }
+    if (token.find_first_of("\r\n") != std::string_view::npos) {
+        return ESP_ERR_INVALID_ARG;
     }
     std::lock_guard lock(mutex_);
     ha_token_ = std::string(token);
