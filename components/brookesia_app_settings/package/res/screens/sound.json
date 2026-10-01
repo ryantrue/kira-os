@@ -166,6 +166,139 @@
                             }
                         ]
                     }
+                },
+                {
+                    "type": "label",
+                    "id": "microphone_caption",
+                    "styleRefs": [
+                        "app.caption"
+                    ],
+                    "labelProps": {
+                        "text": "Microphone"
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    }
+                },
+                {
+                    "type": "label",
+                    "id": "mic_status",
+                    "styleRefs": [
+                        "app.caption"
+                    ],
+                    "labelProps": {
+                        "text": "Microphone status has not been read yet."
+                    },
+                    "placement": {
+                        "mode": "flow",
+                        "width": "match",
+                        "height": "wrap"
+                    },
+                    "bindings": {
+                        "labelProps.text": "labelProps.text"
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "mic_mute",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.sound.mic_mute"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Mute microphone"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "mic_gain_down",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.sound.mic_gain_down"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Reduce microphone gain"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "mic_gain_up",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.sound.mic_gain_up"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Increase microphone gain"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "mic_test",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.sound.mic_test"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Record and replay 3 seconds locally"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "templateRef",
+                    "id": "speaker_test",
+                    "templateId": "setting_row",
+                    "overrides": {
+                        ".": {
+                            "events": [
+                                {
+                                    "type": "clicked",
+                                    "action": "settings.sound.speaker_test"
+                                }
+                            ]
+                        },
+                        "title": {
+                            "labelProps": {
+                                "text": "Play speaker test tone"
+                            }
+                        }
+                    }
                 }
             ]
         }
