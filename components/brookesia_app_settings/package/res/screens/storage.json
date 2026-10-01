@@ -1,0 +1,62 @@
+{
+    "type": "viewScreen",
+    "id": "storage",
+    "mountMode": "dynamic",
+    "commonProps": {"scrollable": false},
+    "styleRefs": ["app.page"],
+    "children": [{
+        "type": "container",
+        "id": "page",
+        "commonProps": {"scrollable": true},
+        "layout": {"type": "flex", "flexFlow": "column", "gap": "${constant.settings.layout.pageGap}"},
+        "placement": {
+            "mode": "absolute",
+            "x": "${constant.settings.layout.pageX}",
+            "y": "${constant.settings.layout.pageY}",
+            "width": "${constant.settings.layout.pageWidth}",
+            "height": "${constant.settings.layout.pageHeight}"
+        },
+        "children": [
+            {
+                "type": "label",
+                "id": "sd_caption",
+                "styleRefs": ["app.caption"],
+                "labelProps": {"text": "Removable storage"},
+                "placement": {"mode": "flow", "width": "match", "height": "wrap"}
+            },
+            {
+                "type": "label",
+                "id": "sd_status",
+                "styleRefs": ["app.caption"],
+                "labelProps": {"text": "Reading SD card status..."},
+                "placement": {"mode": "flow", "width": "match", "height": "wrap"},
+                "bindings": {"labelProps.text": "labelProps.text"}
+            },
+            {
+                "type": "templateRef",
+                "id": "sd_refresh",
+                "templateId": "setting_row",
+                "overrides": {
+                    ".": {"events": [{"type": "clicked", "action": "settings.storage.sd_refresh"}]},
+                    "title": {"labelProps": {"text": "Refresh SD card status"}}
+                }
+            },
+            {
+                "type": "templateRef",
+                "id": "sd_format",
+                "templateId": "setting_row",
+                "overrides": {
+                    ".": {"events": [{"type": "clicked", "action": "settings.storage.sd_format"}]},
+                    "title": {"labelProps": {"text": "Erase and format SD card"}}
+                }
+            },
+            {
+                "type": "label",
+                "id": "format_notice",
+                "styleRefs": ["app.caption"],
+                "labelProps": {"text": "Formatting affects only the removable SD card. Internal LittleFS is never formatted here."},
+                "placement": {"mode": "flow", "width": "match", "height": "wrap"}
+            }
+        ]
+    }]
+}
