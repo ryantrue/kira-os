@@ -202,6 +202,36 @@
                             },
                             {
                                 "type": "templateRef",
+                                "id": "storage",
+                                "templateId": "nav_menu_item",
+                                "overrides": {
+                                    ".": {
+                                        "events": [
+                                            {
+                                                "type": "clicked",
+                                                "action": "settings.open.storage"
+                                            }
+                                        ]
+                                    },
+                                    "icon": {
+                                        "imageProps": {
+                                            "src": "${image.home.more}"
+                                        }
+                                    },
+                                    "title_box/title": {
+                                        "labelProps": {
+                                            "text": "Storage"
+                                        }
+                                    },
+                                    "value_box/value": {
+                                        "labelProps": {
+                                            "text": "SD card"
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "type": "templateRef",
                                 "id": "kira",
                                 "templateId": "nav_menu_item",
                                 "overrides": {
