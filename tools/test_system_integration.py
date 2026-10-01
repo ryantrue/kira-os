@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Source contracts for the Kira 0.3 System Super integration."""
+"""Source contracts for the Kira 0.4 native System Super integration."""
 
 from __future__ import annotations
 
@@ -39,15 +39,19 @@ def test_settings_screen() -> None:
     required_ids = {
         "assistant_section", "open", "autostart", "idle",
         "ai_section", "provider", "model", "key",
-        "microphone_section", "mic_status", "mic_mute", "mic_gain_down", "mic_gain_up", "mic_test", "tone",
-        "ha_section", "ha_url", "ha_token", "ha_test", "ha_refresh", "ha_page", "ha_prev", "ha_next",
-        "storage_section", "sd_status", "sd_refresh", "sd_format",
-        "logs_section", "log_enable", "log_status", "log_share", "log_clear",
         "update_section", "version", "update_status", "update_check", "update_install",
-        "connectivity_section", "connectivity_status", "hardware_section", "gpio_status",
     }
     require(required_ids <= set(ids), f"Kira Settings screen is missing ids: {sorted(required_ids - set(ids))}")
-    require({f"entity{i}" for i in range(8)} <= set(ids), "Home Assistant entity rows are incomplete")
+
+    forbidden_ids = {
+        "microphone_section", "mic_status", "mic_mute", "mic_gain_down", "mic_gain_up", "mic_test", "tone",
+        "ha_section", "ha_status", "ha_url", "ha_token", "ha_test", "ha_refresh", "ha_page", "ha_prev", "ha_next",
+        "storage_section", "sd_status", "sd_refresh", "sd_format",
+        "logs_section", "log_enable", "log_status", "log_share", "log_clear",
+        "connectivity_section", "connectivity_status", "hardware_section", "gpio_status",
+    } | {f"entity{i}" for i in range(8)}
+    require(not (forbidden_ids & set(ids)),
+            f"Kira Settings still owns system/app surfaces: {sorted(forbidden_ids & set(ids))}")
 
     actions = {
         event["action"]
@@ -58,14 +62,8 @@ def test_settings_screen() -> None:
     required_actions = {
         "settings.kira.open", "settings.kira.autostart", "settings.kira.idle",
         "settings.kira.provider", "settings.kira.model", "settings.kira.key",
-        "settings.kira.mic_mute", "settings.kira.mic_gain_down", "settings.kira.mic_gain_up",
-        "settings.kira.mic_test", "settings.kira.tone",
-        "settings.kira.ha_url", "settings.kira.ha_token", "settings.kira.ha_test", "settings.kira.ha_refresh",
-        "settings.kira.ha_prev", "settings.kira.ha_next",
-        "settings.kira.sd_refresh", "settings.kira.sd_format",
-        "settings.kira.log_enable", "settings.kira.log_share", "settings.kira.log_clear",
         "settings.kira.update_check", "settings.kira.update_install",
-    } | {f"settings.kira.entity{i}" for i in range(8)}
+    }
     require(required_actions <= actions, f"Kira Settings screen is missing actions: {sorted(required_actions - actions)}")
     require(not any("keyboard" in str(node.get("type", "")).lower() for node in nodes),
             "Kira Settings embeds a second keyboard")
@@ -74,7 +72,6 @@ def test_settings_screen() -> None:
     bindings = template.get("node", {}).get("bindings", {})
     require(bindings.get("commonProps.disabled") == "commonProps.disabled", "setting rows do not bind disabled state")
     require(bindings.get("commonProps.hidden") == "commonProps.hidden", "setting rows do not bind hidden state")
-
 
 def test_settings_controller() -> None:
     bridge = read("components/kira_settings/settings_bridge.cpp")
@@ -98,7 +95,6 @@ def test_settings_controller() -> None:
     }
     static_actions = {action for action in actions if not re.fullmatch(r"settings\.kira\.entity[0-7]", action)}
     require(static_actions <= handled, f"Settings actions have no controller branch: {sorted(static_actions - handled)}")
-    require('action.starts_with("settings.kira.entity")' in bridge, "Home Assistant entity actions are not handled")
 
 
 def test_voice_pipeline() -> None:
@@ -164,7 +160,7 @@ def main() -> None:
     test_settings_controller()
     test_voice_pipeline()
     test_pinned_overrides()
-    print("Kira 0.3 system integration contracts passed")
+    print("Kira 0.4 system integration contracts passed")
 
 
 if __name__ == "__main__":
