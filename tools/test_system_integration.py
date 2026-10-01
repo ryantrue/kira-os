@@ -84,6 +84,16 @@ def test_settings_screen() -> None:
         "settings.sound.mic_test", "settings.sound.speaker_test",
     } <= sound_actions, "native Sound page audio actions are incomplete")
 
+    home_assistant_settings = json.loads(read("components/brookesia_app_settings/package/res/screens/home_assistant.json"))
+    ha_settings_nodes = list(walk_json(home_assistant_settings))
+    ha_settings_ids = {node["id"] for node in ha_settings_nodes if isinstance(node.get("id"), str)}
+    require({"status", "url", "token", "test"} <= ha_settings_ids,
+            "Home Assistant settings page is missing connection controls")
+    require("components/kira_ha_app/app.cpp" and "kira.home_assistant" in read("components/kira_ha_app/app.cpp"),
+            "standalone Home Assistant native app is missing")
+    require("kira::home_assistant_app::ensure_linked();" in read("main/main.cpp"),
+            "standalone Home Assistant app provider is not linked")
+
     storage = json.loads(read("components/brookesia_app_settings/package/res/screens/storage.json"))
     storage_nodes = list(walk_json(storage))
     storage_ids = {node["id"] for node in storage_nodes if isinstance(node.get("id"), str)}
