@@ -219,16 +219,6 @@ std::expected<void, std::string> Bridge::action(core::AppContext &context, std::
     else if (action == "settings.storage.sd_refresh") platform::sdcard::refresh_async();
     else if (action == "settings.storage.sd_format") {
         return confirm(context, "Erase and format the removable SD card?", "All SD files, logs and recovery backups will be deleted. Internal LittleFS is not formatted.", [] { platform::sdcard::format_async(); });
-    } else if (action == "settings.kira.log_enable") platform::logger::set_enabled(!platform::logger::enabled());
-    else if (action == "settings.kira.log_share") {
-        (void)platform::submit_job("log_share", [] {
-            if (platform::log_share::status().running) platform::log_share::stop();
-            else (void)platform::log_share::start();
-        });
-    } else if (action == "settings.kira.log_clear") {
-        return confirm(context, "Delete saved diagnostics?", "This deletes the saved log on this device.", [] {
-            (void)platform::submit_job("log_clear", [] { platform::logger::clear(); });
-        });
     } else if (action == "settings.kira.update_check") platform::updater::check_async();
     else if (action == "settings.kira.update_install") {
         const auto status = platform::updater::status();
@@ -323,6 +313,7 @@ std::expected<void, std::string> Bridge::poll(core::AppContext &context)
     text("provider/title", "Voice provider: " + settings.ai_provider() + " (only available adapter)");
     text("model/title", "Realtime model: " + settings.ai_model());
     text("key/title", std::string("API key: ") + (settings.has_ai_key(settings.ai_provider()) ? "saved (hidden)" : "not set"));
+    const auto sd = platform::sdcard::status();
     const auto update = platform::updater::status();
     text("version", "Current: " + platform::firmware_version() + "\nAvailable: " + (update.latest.empty() ? "not checked" : update.latest));
     text("update_status", update.message + (update.total_bytes ? "\n" + bytes(update.download_bytes) + " / " + bytes(update.total_bytes) : ""));
