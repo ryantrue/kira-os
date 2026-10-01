@@ -8,12 +8,17 @@
 #include "kira/platform/home_assistant.hpp"
 #include "kira/platform/version.hpp"
 #include "lvgl.h"
+#include "esp_heap_caps.h"
+#include "esp_log.h"
+#include "esp_timer.h"
 
 namespace kira::home_assistant_app {
 namespace {
 namespace core = esp_brookesia::system::core;
 namespace ha = kira::platform::home_assistant;
 constexpr const char *APP_ID = "kira.home_assistant";
+constexpr const char *TAG = "kira_ha_app";
+void log_perf(const char *event, int64_t started_us) { ESP_LOGI(TAG, "perf %s: %lld ms, heap=%u, psram=%u", event, static_cast<long long>((esp_timer_get_time()-started_us)/1000), static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)), static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM))); }
 
 class HomeAssistantApp final : public core::IApp {
 public:
@@ -23,13 +28,13 @@ public:
             .runtime_type=esp_brookesia::runtime::BackendType::Unknown,.app_path={},.entry={},.resource_dir={},.arguments={}};
     }
     std::expected<void,std::string> on_start(core::AppContext &context) override {
-        context_=&context; esp_brookesia::gui::lvgl::lock_thread(); create_locked(); esp_brookesia::gui::lvgl::unlock_thread();
-        ha::refresh_async(); return root_ ? std::expected<void,std::string>{} : std::unexpected("Failed to create Home Assistant surface");
+        const int64_t started_us=esp_timer_get_time(); context_=&context; esp_brookesia::gui::lvgl::lock_thread(); create_locked(); esp_brookesia::gui::lvgl::unlock_thread();
+        ha::refresh_async(); if(root_){ log_perf("start",started_us); return {}; } return std::unexpected("Failed to create Home Assistant surface");
     }
-    std::expected<void,std::string> on_pause(core::AppContext &) override { set_hidden(true); return {}; }
-    std::expected<void,std::string> on_resume(core::AppContext &) override { set_hidden(false); ha::refresh_async(); return {}; }
+    std::expected<void,std::string> on_pause(core::AppContext &) override { const int64_t t=esp_timer_get_time(); set_hidden(true); log_perf("pause",t); return {}; }
+    std::expected<void,std::string> on_resume(core::AppContext &) override { const int64_t t=esp_timer_get_time(); set_hidden(false); ha::refresh_async(); log_perf("resume",t); return {}; }
     std::expected<void,std::string> on_stop(core::AppContext &) override {
-        esp_brookesia::gui::lvgl::lock_thread(); if(timer_) lv_timer_delete(timer_); timer_=nullptr; if(root_) lv_obj_delete(root_); root_=nullptr; esp_brookesia::gui::lvgl::unlock_thread(); context_=nullptr; return {};
+        const int64_t t=esp_timer_get_time(); esp_brookesia::gui::lvgl::lock_thread(); if(timer_) lv_timer_delete(timer_); timer_=nullptr; if(root_) lv_obj_delete(root_); root_=nullptr; esp_brookesia::gui::lvgl::unlock_thread(); context_=nullptr; log_perf("stop",t); return {};
     }
 private:
     struct Slot { HomeAssistantApp *self=nullptr; size_t index=0; };
