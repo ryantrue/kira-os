@@ -382,7 +382,7 @@ std::expected<void, std::string> SettingsApp::on_action(
 )
 {
     BROOKESIA_LOGD("Settings action: %1%", action);
-    if (action.starts_with("settings.kira.") || action.starts_with("settings.sound.mic_") || action == "settings.sound.speaker_test") {
+    if (action.starts_with("settings.kira.") || action.starts_with("settings.sound.mic_") || action == "settings.sound.speaker_test" || action.starts_with("settings.storage.")) {
         return kira::settings::Bridge::instance().action(context, action);
     }
     std::string effective_action_storage;
@@ -517,7 +517,7 @@ std::expected<void, std::string> SettingsApp::on_action(
         if (const auto page = get_navigation_page(effective_action); page.has_value()) {
             current_page_ = *page;
         }
-        kira::settings::Bridge::instance().set_active(context, current_page_ == PAGE_KIRA, current_page_ == PAGE_SOUND);
+        kira::settings::Bridge::instance().set_active(context, current_page_ == PAGE_KIRA, current_page_ == PAGE_SOUND, current_page_ == PAGE_STORAGE);
         if (current_page_ != PAGE_DEVICE) {
             reset_debug_entry_click_state();
         }
