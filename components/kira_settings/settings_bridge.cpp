@@ -8,10 +8,7 @@
 #include "esp_err.h"
 #include "kira/audio.hpp"
 #include "kira/platform/ai_providers.hpp"
-#include "kira/platform/hardware.hpp"
 #include "kira/platform/home_assistant.hpp"
-#include "kira/platform/log_share.hpp"
-#include "kira/platform/logger.hpp"
 #include "kira/platform/sdcard.hpp"
 #include "kira/platform/settings.hpp"
 #include "kira/platform/updater.hpp"
@@ -78,12 +75,9 @@ std::expected<void, std::string> Bridge::start(core::AppContext &context)
     app_context_ = &context;
     std::vector<std::string> actions;
     for (const auto *name : {"autostart", "idle", "open", "provider", "model", "key",
-             "ha_url", "ha_token", "ha_test", "ha_refresh", "ha_prev", "ha_next", "sd_refresh", "sd_format",
-             "log_enable", "log_share", "log_clear", "update_check", "update_install", "mic_test", "mic_mute",
-             "mic_gain_down", "mic_gain_up"}) {
+             "update_check", "update_install"}) {
         actions.push_back(std::string("settings.kira.") + name);
     }
-    for (size_t i = 0; i < entity_ids_.size(); ++i) actions.push_back("settings.kira.entity" + std::to_string(i));
     actions.push_back("settings.storage.sd_refresh");
     actions.push_back("settings.storage.sd_format");
     actions.push_back("settings.home_assistant.url");
@@ -222,16 +216,7 @@ std::expected<void, std::string> Bridge::action(core::AppContext &context, std::
         // Only providers with an implemented realtime adapter can be selected.
         (void)settings.set_ai_provider("openai");
     } else if (action == "settings.home_assistant.test") platform::home_assistant::test_async();
-    else if (action == "settings.kira.ha_refresh") platform::home_assistant::refresh_async();
-    else if (action == "settings.kira.ha_prev") { if (entity_page_ > 0) --entity_page_; }
-    else if (action == "settings.kira.ha_next") ++entity_page_;
-    else if (action.starts_with("settings.kira.entity")) {
-        const auto suffix = action.substr(std::string_view("settings.kira.entity").size());
-        if (suffix.size() == 1 && suffix.front() >= '0' && suffix.front() <= '7') {
-            const auto &id = entity_ids_[suffix.front() - '0'];
-            if (!id.empty()) platform::home_assistant::toggle_async(id);
-        }
-    } else if (action == "settings.storage.sd_refresh") platform::sdcard::refresh_async();
+    else if (action == "settings.storage.sd_refresh") platform::sdcard::refresh_async();
     else if (action == "settings.storage.sd_format") {
         return confirm(context, "Erase and format the removable SD card?", "All SD files, logs and recovery backups will be deleted. Internal LittleFS is not formatted.", [] { platform::sdcard::format_async(); });
     } else if (action == "settings.kira.log_enable") platform::logger::set_enabled(!platform::logger::enabled());
@@ -338,66 +323,12 @@ std::expected<void, std::string> Bridge::poll(core::AppContext &context)
     text("provider/title", "Voice provider: " + settings.ai_provider() + " (only available adapter)");
     text("model/title", "Realtime model: " + settings.ai_model());
     text("key/title", std::string("API key: ") + (settings.has_ai_key(settings.ai_provider()) ? "saved (hidden)" : "not set"));
-    text("ha_url/title", "Address: " + settings.ha_url());
-    text("ha_token/title", std::string("HA token: ") + (settings.has_ha_token() ? "saved (hidden)" : "not set"));
-    const auto ha = platform::home_assistant::status();
-    text("ha_status", std::string(ha.busy ? "Working... " : ha.connected ? "Connected. " : "Disconnected. ") + ha.message);
-    const auto pages = std::max<size_t>(1, (ha.entities.size() + entity_ids_.size() - 1) / entity_ids_.size());
-    entity_page_ = std::min(entity_page_, pages - 1);
-    entity_ids_ = {};
-    for (size_t i = 0; i < entity_ids_.size(); ++i) {
-        const auto index = entity_page_ * entity_ids_.size() + i;
-        const auto id = "entity" + std::to_string(i);
-        flag(id, "commonProps.hidden", index >= ha.entities.size());
-        if (index < ha.entities.size()) {
-            const auto &entity = ha.entities[index];
-            entity_ids_[i] = entity.entity_id;
-            text(id + "/title", entity.name + ": " + entity.state + " (toggle)");
-            flag(id, "commonProps.disabled", ha.busy || (entity.state != "on" && entity.state != "off"));
-        }
-    }
-    text("ha_page", "Entities page " + std::to_string(entity_page_ + 1) + "/" + std::to_string(pages));
-    flag("ha_prev", "commonProps.disabled", entity_page_ == 0);
-    flag("ha_next", "commonProps.disabled", entity_page_ + 1 >= pages);
-    flag("ha_test", "commonProps.disabled", ha.busy);
-    flag("ha_refresh", "commonProps.disabled", ha.busy);
-    const auto sd = platform::sdcard::status();
-    text("sd_status", sd.mounted ? "Present / mounted: " + sd.filesystem + "\nCapacity " + bytes(sd.total_bytes) + ", free " + bytes(sd.free_bytes) + ", used " + bytes(sd.total_bytes - std::min(sd.total_bytes, sd.free_bytes)) + "\n" + sd.message : "No mounted SD card. " + sd.message);
-    flag("sd_format", "commonProps.disabled", sd.busy);
-    flag("sd_refresh", "commonProps.disabled", sd.busy);
-    const auto log = platform::logger::status();
-    text("log_enable/title", std::string("Save diagnostic logs: ") + (log.enabled ? "On" : "Off"));
-    text("log_status", log.location + "\nStored " + bytes(log.stored_bytes) + "; dropped lines " + std::to_string(log.dropped_lines));
-    const auto share = platform::log_share::status();
-    text("log_share/title", share.running ? "Stop sharing logs" : "Share logs over Wi-Fi");
-    text("share_status", share.running ? "Wi-Fi: " + share.ssid + "\nPassword: " + share.password + "\n" + share.ap_url + "\n" + share.lan_url : share.message);
     const auto update = platform::updater::status();
     text("version", "Current: " + platform::firmware_version() + "\nAvailable: " + (update.latest.empty() ? "not checked" : update.latest));
     text("update_status", update.message + (update.total_bytes ? "\n" + bytes(update.download_bytes) + " / " + bytes(update.total_bytes) : ""));
     flag("update_install", "commonProps.disabled", update.phase != platform::updater::Phase::Available || !sd.mounted);
     const bool updating = update.phase == platform::updater::Phase::Checking || update.phase == platform::updater::Phase::Downloading || update.phase == platform::updater::Phase::Verifying || update.phase == platform::updater::Phase::ReadyToInstall;
     flag("update_check", "commonProps.disabled", updating);
-    const auto mic = kira::audio::microphone_status();
-    char mic_summary[160];
-    snprintf(mic_summary, sizeof(mic_summary), "%s | %lu Hz | %u channels\nLevel %.0f%% | gain %.1f dB\n%s",
-             mic.available ? "Available" : "Unavailable", static_cast<unsigned long>(mic.sample_rate),
-             static_cast<unsigned>(mic.channels), mic.level * 100.0F, mic.gain, mic.test_state.c_str());
-    text("mic_status", mic_summary);
-    text("mic_mute/title", mic.muted ? "Open microphone software capture gate"
-                                      : "Close microphone software capture gate");
-    text("mic_gain_down/title", "Reduce microphone gain (current " + std::to_string(static_cast<int>(mic.gain)) + " dB)");
-    text("mic_gain_up/title", "Increase microphone gain (current " + std::to_string(static_cast<int>(mic.gain)) + " dB)");
-    flag("mic_mute", "commonProps.disabled", !mic.available || mic.running);
-    flag("mic_gain_down", "commonProps.disabled", !mic.available || mic.running || mic.gain <= 0.0F);
-    flag("mic_gain_up", "commonProps.disabled", !mic.available || mic.running || mic.gain >= 37.5F);
-    flag("mic_test", "commonProps.disabled", !mic.available || mic.running || mic.muted);
-    const auto network = platform::hardware::connectivity_status();
-    text("connectivity_status", network.wifi_message + "\n" + network.bluetooth_message + "\nWi-Fi controls are in Settings > Wi-Fi.");
-    std::string pins;
-    for (const auto &pin : platform::hardware::gpio_status()) {
-        pins += "GPIO " + std::to_string(pin.number) + " | " + pin.function + " | " + pin.direction + " | " + pin.state + " | " + (pin.reserved ? "Reserved/System" : "Unqualified: read-only") + "\n";
-    }
-    text("gpio_status", std::move(pins));
     return context.gui().set_binding_values(updates);
 }
 } // namespace kira::settings
