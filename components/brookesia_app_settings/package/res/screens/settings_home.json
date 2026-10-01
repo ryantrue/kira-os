@@ -232,6 +232,36 @@
                             },
                             {
                                 "type": "templateRef",
+                                "id": "home_assistant",
+                                "templateId": "nav_menu_item",
+                                "overrides": {
+                                    ".": {
+                                        "events": [
+                                            {
+                                                "type": "clicked",
+                                                "action": "settings.open.home_assistant"
+                                            }
+                                        ]
+                                    },
+                                    "icon": {
+                                        "imageProps": {
+                                            "src": "${image.home.more}"
+                                        }
+                                    },
+                                    "title_box/title": {
+                                        "labelProps": {
+                                            "text": "Home Assistant"
+                                        }
+                                    },
+                                    "value_box/value": {
+                                        "labelProps": {
+                                            "text": "Smart home"
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "type": "templateRef",
                                 "id": "kira",
                                 "templateId": "nav_menu_item",
                                 "overrides": {
