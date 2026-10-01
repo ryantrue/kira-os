@@ -150,7 +150,10 @@ static constexpr const char *PAGE_MORE = "more";
 static constexpr const char *PAGE_LANGUAGE = "language";
 static constexpr const char *PAGE_TIME_ZONE = "time_zone";
 static constexpr const char *PAGE_DEBUG = "debug";
+static constexpr const char *PAGE_STORAGE = "storage";
 static constexpr const char *PAGE_KIRA = "kira";
+static constexpr const char *ACTION_OPEN_STORAGE = "settings.open.storage";
+static constexpr const char *ACTION_BACK_STORAGE = "settings.back.storage";
 static constexpr const char *ACTION_OPEN_KIRA = "settings.open.kira";
 static constexpr const char *ACTION_BACK_KIRA = "settings.back.kira";
 static constexpr const char *ACTION_OPEN_HOME = "settings.open.home";
@@ -468,7 +471,7 @@ std::string make_app_version()
            std::to_string(BROOKESIA_APP_SETTINGS_VER_PATCH);
 }
 
-static constexpr std::array<NavigationTarget, 20> NAVIGATION_TARGETS = {
+static constexpr std::array<NavigationTarget, 22> NAVIGATION_TARGETS = {
     NavigationTarget{ACTION_OPEN_HOME, PAGE_HOME},
     NavigationTarget{"settings.back.device", PAGE_HOME},
     NavigationTarget{"settings.back.wifi", PAGE_HOME},
@@ -487,6 +490,8 @@ static constexpr std::array<NavigationTarget, 20> NAVIGATION_TARGETS = {
     NavigationTarget{"settings.open.language", PAGE_LANGUAGE},
     NavigationTarget{"settings.open.time_zone", PAGE_TIME_ZONE},
     NavigationTarget{ACTION_OPEN_DEBUG, PAGE_DEBUG},
+    NavigationTarget{ACTION_OPEN_STORAGE, PAGE_STORAGE},
+    NavigationTarget{ACTION_BACK_STORAGE, PAGE_HOME},
     NavigationTarget{ACTION_OPEN_KIRA, PAGE_KIRA},
     NavigationTarget{ACTION_BACK_KIRA, PAGE_HOME},
 };
@@ -683,6 +688,9 @@ std::string_view get_header_back_action_for_page(std::string_view page)
 {
     if (page == PAGE_KIRA) {
         return ACTION_BACK_KIRA;
+    }
+    if (page == PAGE_STORAGE) {
+        return ACTION_BACK_STORAGE;
     }
     if (page == PAGE_WIFI_CONNECT) {
         return ACTION_BACK_WIFI_CONNECT;
