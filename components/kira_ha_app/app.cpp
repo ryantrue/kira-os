@@ -37,7 +37,7 @@ private:
     static void on_refresh(lv_event_t *e){ auto *self=static_cast<HomeAssistantApp*>(lv_event_get_user_data(e)); if(self) ha::refresh_async(); }
     static void on_close(lv_event_t *e){ auto *self=static_cast<HomeAssistantApp*>(lv_event_get_user_data(e)); if(self&&self->context_) (void)self->context_->system_service().request_close_app(self->context_->app_id()); }
     static void on_entity(lv_event_t *e){ auto *slot=static_cast<Slot*>(lv_event_get_user_data(e)); if(!slot||!slot->self) return; auto st=ha::status(); if(slot->index<st.entities.size()) ha::toggle_async(st.entities[slot->index].entity_id); }
-    static void on_timer(lv_timer_t *t){ auto *self=static_cast<HomeAssistantApp*>(lv_timer_get_user_data(t)); if(self) self->update_locked(); }
+    static void on_lv_timer(lv_timer_t *t){ auto *self=static_cast<HomeAssistantApp*>(lv_timer_get_user_data(t)); if(self) self->update_locked(); }
     void create_locked(){
         root_=lv_obj_create(lv_display_get_layer_top(lv_display_get_default())); lv_obj_set_size(root_,LV_PCT(100),LV_PCT(100)); lv_obj_set_style_bg_color(root_,lv_color_hex(0x0B1016),0); lv_obj_set_style_bg_opa(root_,LV_OPA_COVER,0); lv_obj_clear_flag(root_,LV_OBJ_FLAG_SCROLLABLE);
         auto *title=lv_label_create(root_); lv_label_set_text(title,"Home Assistant"); lv_obj_align(title,LV_ALIGN_TOP_MID,0,28);
@@ -46,7 +46,7 @@ private:
         status_=lv_label_create(root_); lv_obj_set_width(status_,LV_PCT(90)); lv_obj_set_style_text_align(status_,LV_TEXT_ALIGN_CENTER,0); lv_obj_align(status_,LV_ALIGN_TOP_MID,0,90);
         list_=lv_obj_create(root_); lv_obj_set_size(list_,LV_PCT(92),520); lv_obj_align(list_,LV_ALIGN_BOTTOM_MID,0,-18); lv_obj_set_flex_flow(list_,LV_FLEX_FLOW_COLUMN); lv_obj_set_style_pad_row(list_,8,0);
         for(size_t i=0;i<buttons_.size();++i){ slots_[i]={this,i}; buttons_[i]=lv_button_create(list_); lv_obj_set_width(buttons_[i],LV_PCT(100)); lv_obj_add_event_cb(buttons_[i],on_entity,LV_EVENT_CLICKED,&slots_[i]); labels_[i]=lv_label_create(buttons_[i]); lv_label_set_text(labels_[i],""); lv_obj_center(labels_[i]); }
-        timer_=lv_timer_create(on_timer,1000,this); update_locked();
+        timer_=lv_timer_create(on_lv_timer,1000,this); update_locked();
     }
     void update_locked(){
         auto st=ha::status(); std::string status=(st.busy?"Working... ":st.connected?"Connected. ":"Disconnected. ")+st.message; lv_label_set_text(status_,status.c_str());
