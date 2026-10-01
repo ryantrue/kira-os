@@ -18,7 +18,7 @@ public:
     static Bridge &instance();
     std::expected<void, std::string> start(esp_brookesia::system::core::AppContext &context);
     void stop(esp_brookesia::system::core::AppContext &context);
-    void set_active(esp_brookesia::system::core::AppContext &context, bool active);
+    void set_active(esp_brookesia::system::core::AppContext &context, bool active, bool sound_active = false);
     std::expected<void, std::string> action(esp_brookesia::system::core::AppContext &context, std::string_view action);
     std::expected<void, std::string> poll(esp_brookesia::system::core::AppContext &context);
     std::expected<void, std::string> request_text(esp_brookesia::system::core::AppContext &context, Field field);
@@ -36,6 +36,7 @@ private:
     esp_brookesia::system::core::MessageDialogRequestId dialog_request_id_ = esp_brookesia::system::core::INVALID_MESSAGE_DIALOG_REQUEST_ID;
     esp_brookesia::system::core::TimerId timer_id_ = esp_brookesia::system::core::INVALID_TIMER_ID;
     bool active_ = false;
+    bool sound_active_ = false;
     size_t entity_page_ = 0;
     std::array<std::string, 8> entity_ids_{};
     std::string notice_;
