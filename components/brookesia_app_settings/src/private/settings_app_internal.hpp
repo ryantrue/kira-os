@@ -160,7 +160,10 @@ inline constexpr const char *PAGE_MORE = "more";
 inline constexpr const char *PAGE_LANGUAGE = "language";
 inline constexpr const char *PAGE_TIME_ZONE = "time_zone";
 inline constexpr const char *PAGE_DEBUG = "debug";
+inline constexpr const char *PAGE_STORAGE = "storage";
 inline constexpr const char *PAGE_KIRA = "kira";
+inline constexpr const char *ACTION_OPEN_STORAGE = "settings.open.storage";
+inline constexpr const char *ACTION_BACK_STORAGE = "settings.back.storage";
 inline constexpr const char *ACTION_OPEN_KIRA = "settings.open.kira";
 inline constexpr const char *ACTION_BACK_KIRA = "settings.back.kira";
 inline constexpr const char *ACTION_OPEN_HOME = "settings.open.home";
@@ -312,7 +315,7 @@ inline constexpr const char *DEBUG_KEY_THREAD_STACK_HIGH_WATER_MARK_THRESHOLD_BY
     "Debug.ThreadStackHighWaterMarkThresholdBytes";
 inline constexpr uint32_t SETTINGS_STORAGE_TIMEOUT_MS = WIFI_SERVICE_TIMEOUT_MS;
 
-inline constexpr std::array<const char *, 20> NAVIGATION_ACTIONS = {
+inline constexpr std::array<const char *, 22> NAVIGATION_ACTIONS = {
     ACTION_OPEN_HOME,
     "settings.back.device",
     "settings.back.wifi",
@@ -331,6 +334,8 @@ inline constexpr std::array<const char *, 20> NAVIGATION_ACTIONS = {
     "settings.open.language",
     "settings.open.time_zone",
     ACTION_OPEN_DEBUG,
+    ACTION_OPEN_STORAGE,
+    ACTION_BACK_STORAGE,
     ACTION_OPEN_KIRA,
     ACTION_BACK_KIRA,
 };
