@@ -86,6 +86,9 @@ std::expected<void, std::string> Bridge::start(core::AppContext &context)
     for (size_t i = 0; i < entity_ids_.size(); ++i) actions.push_back("settings.kira.entity" + std::to_string(i));
     actions.push_back("settings.storage.sd_refresh");
     actions.push_back("settings.storage.sd_format");
+    actions.push_back("settings.home_assistant.url");
+    actions.push_back("settings.home_assistant.token");
+    actions.push_back("settings.home_assistant.test");
     for (const auto *name : {"mic_test", "mic_mute", "mic_gain_down", "mic_gain_up", "speaker_test"}) {
         actions.push_back(std::string("settings.sound.") + name);
     }
@@ -97,6 +100,7 @@ void Bridge::stop(core::AppContext &context)
     active_ = false;
     sound_active_ = false;
     storage_active_ = false;
+    home_assistant_active_ = false;
     app_context_ = nullptr; // Guard callbacks before cancelling shell requests.
     cancel_keyboard(context);
     if (dialog_request_id_ != core::INVALID_MESSAGE_DIALOG_REQUEST_ID) {
@@ -112,12 +116,13 @@ void Bridge::stop(core::AppContext &context)
     notice_.clear();
 }
 
-void Bridge::set_active(core::AppContext &context, bool active, bool sound_active, bool storage_active)
+void Bridge::set_active(core::AppContext &context, bool active, bool sound_active, bool storage_active, bool home_assistant_active)
 {
     active_ = active;
     sound_active_ = sound_active;
     storage_active_ = storage_active;
-    if (!active_ && !sound_active_ && !storage_active_) {
+    home_assistant_active_ = home_assistant_active;
+    if (!active_ && !sound_active_ && !storage_active_ && !home_assistant_active_) {
         cancel_keyboard(context);
         if (timer_id_ != core::INVALID_TIMER_ID) (void)context.timer().stop(timer_id_);
         timer_id_ = core::INVALID_TIMER_ID;
@@ -199,8 +204,8 @@ std::expected<void, std::string> Bridge::action(core::AppContext &context, std::
     auto &settings = Settings::instance();
     if (action == "settings.kira.model") return request_text(context, Field::AiModel);
     if (action == "settings.kira.key") return request_text(context, Field::AiKey);
-    if (action == "settings.kira.ha_url") return request_text(context, Field::HomeAssistantUrl);
-    if (action == "settings.kira.ha_token") return request_text(context, Field::HomeAssistantToken);
+    if (action == "settings.home_assistant.url") return request_text(context, Field::HomeAssistantUrl);
+    if (action == "settings.home_assistant.token") return request_text(context, Field::HomeAssistantToken);
     if (action == "settings.kira.autostart") (void)settings.set_autostart(!settings.autostart());
     else if (action == "settings.kira.idle") {
         const auto &choices = Settings::IDLE_CHOICES_MIN;
@@ -216,7 +221,7 @@ std::expected<void, std::string> Bridge::action(core::AppContext &context, std::
     } else if (action == "settings.kira.provider") {
         // Only providers with an implemented realtime adapter can be selected.
         (void)settings.set_ai_provider("openai");
-    } else if (action == "settings.kira.ha_test") platform::home_assistant::test_async();
+    } else if (action == "settings.home_assistant.test") platform::home_assistant::test_async();
     else if (action == "settings.kira.ha_refresh") platform::home_assistant::refresh_async();
     else if (action == "settings.kira.ha_prev") { if (entity_page_ > 0) --entity_page_; }
     else if (action == "settings.kira.ha_next") ++entity_page_;
@@ -266,7 +271,7 @@ std::expected<void, std::string> Bridge::action(core::AppContext &context, std::
 
 std::expected<void, std::string> Bridge::poll(core::AppContext &context)
 {
-    if (!active_ && !sound_active_ && !storage_active_) return {};
+    if (!active_ && !sound_active_ && !storage_active_ && !home_assistant_active_) return {};
     auto &settings = Settings::instance();
     std::vector<gui::BindingValueUpdate> updates;
     const auto text = [&updates](std::string path, std::string value) {
@@ -281,6 +286,18 @@ std::expected<void, std::string> Bridge::poll(core::AppContext &context)
     const auto sound_flag = [&updates](std::string path, const char *key, bool value) {
         updates.push_back({.absolute_path = "/sound/page/" + path, .key = key, .value = value ? "true" : "false"});
     };
+    if (home_assistant_active_) {
+        const auto ha = platform::home_assistant::status();
+        updates.push_back({.absolute_path="/home_assistant/page/status", .key="labelProps.text",
+            .value=std::string(ha.busy ? "Working... " : ha.connected ? "Connected. " : "Disconnected. ") + ha.message});
+        updates.push_back({.absolute_path="/home_assistant/page/url/title", .key="labelProps.text",
+            .value="Server address: " + settings.ha_url()});
+        updates.push_back({.absolute_path="/home_assistant/page/token/title", .key="labelProps.text",
+            .value=std::string("Access token: ") + (settings.has_ha_token() ? "saved (hidden)" : "not set")});
+        updates.push_back({.absolute_path="/home_assistant/page/test", .key="commonProps.disabled",
+            .value=ha.busy ? "true" : "false"});
+        if (!active_ && !sound_active_ && !storage_active_) return context.gui().set_binding_values(updates);
+    }
     if (storage_active_) {
         const auto sd = platform::sdcard::status();
         const auto storage_text = [&updates](std::string path, std::string value) {
