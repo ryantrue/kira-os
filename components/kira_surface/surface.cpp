@@ -86,6 +86,9 @@ void Surface::pause()
 {
     esp_brookesia::gui::lvgl::lock_thread();
     paused_ = true;
+    // A paused app is fully hidden by System Core. Stop the LVGL timer instead of
+    // waking the GUI task just to return from update_locked() every 100 ms.
+    if (timer_ != nullptr) lv_timer_pause(timer_);
     if (root_ != nullptr) lv_obj_add_flag(root_, LV_OBJ_FLAG_HIDDEN);
     esp_brookesia::gui::lvgl::unlock_thread();
 }
@@ -97,6 +100,13 @@ void Surface::resume()
     if (root_ != nullptr) {
         lv_obj_clear_flag(root_, LV_OBJ_FLAG_HIDDEN);
         lv_obj_move_foreground(root_);
+    }
+    if (timer_ != nullptr) {
+        // Consume any state/status published while paused immediately on resume,
+        // then continue at the state-appropriate cadence.
+        update_locked();
+        lv_timer_resume(timer_);
+        lv_timer_ready(timer_);
     }
     esp_brookesia::gui::lvgl::unlock_thread();
 }
