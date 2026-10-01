@@ -93,6 +93,7 @@ std::expected<void, std::string> Bridge::start(core::AppContext &context)
 void Bridge::stop(core::AppContext &context)
 {
     active_ = false;
+    sound_active_ = false;
     app_context_ = nullptr; // Guard callbacks before cancelling shell requests.
     cancel_keyboard(context);
     if (dialog_request_id_ != core::INVALID_MESSAGE_DIALOG_REQUEST_ID) {
@@ -108,10 +109,11 @@ void Bridge::stop(core::AppContext &context)
     notice_.clear();
 }
 
-void Bridge::set_active(core::AppContext &context, bool active)
+void Bridge::set_active(core::AppContext &context, bool active, bool sound_active)
 {
     active_ = active;
-    if (!active) {
+    sound_active_ = sound_active;
+    if (!active_ && !sound_active_) {
         cancel_keyboard(context);
         if (timer_id_ != core::INVALID_TIMER_ID) (void)context.timer().stop(timer_id_);
         timer_id_ = core::INVALID_TIMER_ID;
@@ -121,7 +123,7 @@ void Bridge::set_active(core::AppContext &context, bool active)
         auto timer = context.timer().start_periodic(TIMER_NAME, 1000);
         if (timer) timer_id_ = *timer;
     }
-    platform::sdcard::refresh_async();
+    if (active_) platform::sdcard::refresh_async();
     (void)poll(context);
 }
 
@@ -260,7 +262,7 @@ std::expected<void, std::string> Bridge::action(core::AppContext &context, std::
 
 std::expected<void, std::string> Bridge::poll(core::AppContext &context)
 {
-    if (!active_) return {};
+    if (!active_ && !sound_active_) return {};
     auto &settings = Settings::instance();
     std::vector<gui::BindingValueUpdate> updates;
     const auto text = [&updates](std::string path, std::string value) {
@@ -269,6 +271,28 @@ std::expected<void, std::string> Bridge::poll(core::AppContext &context)
     const auto flag = [&updates](std::string path, const char *key, bool value) {
         updates.push_back({.absolute_path = "/kira/page/" + path, .key = key, .value = value ? "true" : "false"});
     };
+    const auto sound_text = [&updates](std::string path, std::string value) {
+        updates.push_back({.absolute_path = "/sound/page/" + path, .key = "labelProps.text", .value = std::move(value)});
+    };
+    const auto sound_flag = [&updates](std::string path, const char *key, bool value) {
+        updates.push_back({.absolute_path = "/sound/page/" + path, .key = key, .value = value ? "true" : "false"});
+    };
+    if (sound_active_) {
+        const auto mic = kira::audio::microphone_status();
+        char mic_summary[160];
+        snprintf(mic_summary, sizeof(mic_summary), "%s | %lu Hz | %u channels\\nLevel %.0f%% | gain %.1f dB\\n%s",
+                 mic.available ? "Available" : "Unavailable", static_cast<unsigned long>(mic.sample_rate),
+                 static_cast<unsigned>(mic.channels), mic.level * 100.0F, mic.gain, mic.test_state.c_str());
+        sound_text("mic_status", mic_summary);
+        sound_text("mic_mute/title", mic.muted ? "Unmute microphone" : "Mute microphone");
+        sound_text("mic_gain_down/title", "Reduce microphone gain (current " + std::to_string(static_cast<int>(mic.gain)) + " dB)");
+        sound_text("mic_gain_up/title", "Increase microphone gain (current " + std::to_string(static_cast<int>(mic.gain)) + " dB)");
+        sound_flag("mic_mute", "commonProps.disabled", !mic.available || mic.running);
+        sound_flag("mic_gain_down", "commonProps.disabled", !mic.available || mic.running || mic.gain <= 0.0F);
+        sound_flag("mic_gain_up", "commonProps.disabled", !mic.available || mic.running || mic.gain >= 37.5F);
+        sound_flag("mic_test", "commonProps.disabled", !mic.available || mic.running || mic.muted);
+        if (!active_) return context.gui().set_binding_values(updates);
+    }
     text("notice", notice_);
     text("autostart/title", std::string("Start Kira after inactivity: ") + (settings.autostart() ? "On" : "Off"));
     text("idle/title", "Inactivity timeout: " + std::to_string(settings.idle_minutes()) + " minutes");
