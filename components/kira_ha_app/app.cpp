@@ -31,14 +31,15 @@ public:
         const int64_t started_us=esp_timer_get_time(); context_=&context; esp_brookesia::gui::lvgl::lock_thread(); create_locked(); esp_brookesia::gui::lvgl::unlock_thread();
         ha::refresh_async(); if(root_){ log_perf("start",started_us); return {}; } return std::unexpected("Failed to create Home Assistant surface");
     }
-    std::expected<void,std::string> on_pause(core::AppContext &) override { const int64_t t=esp_timer_get_time(); set_hidden(true); log_perf("pause",t); return {}; }
-    std::expected<void,std::string> on_resume(core::AppContext &) override { const int64_t t=esp_timer_get_time(); set_hidden(false); ha::refresh_async(); log_perf("resume",t); return {}; }
+    std::expected<void,std::string> on_pause(core::AppContext &) override { const int64_t t=esp_timer_get_time(); set_hidden(true); set_polling(false); log_perf("pause",t); return {}; }
+    std::expected<void,std::string> on_resume(core::AppContext &) override { const int64_t t=esp_timer_get_time(); set_hidden(false); set_polling(true); ha::refresh_async(); log_perf("resume",t); return {}; }
     std::expected<void,std::string> on_stop(core::AppContext &) override {
         const int64_t t=esp_timer_get_time(); esp_brookesia::gui::lvgl::lock_thread(); if(timer_) lv_timer_delete(timer_); timer_=nullptr; if(root_) lv_obj_delete(root_); root_=nullptr; esp_brookesia::gui::lvgl::unlock_thread(); context_=nullptr; log_perf("stop",t); return {};
     }
 private:
     struct Slot { HomeAssistantApp *self=nullptr; size_t index=0; };
     void set_hidden(bool hidden){ esp_brookesia::gui::lvgl::lock_thread(); if(root_){ if(hidden) lv_obj_add_flag(root_,LV_OBJ_FLAG_HIDDEN); else {lv_obj_clear_flag(root_,LV_OBJ_FLAG_HIDDEN);lv_obj_move_foreground(root_);} } esp_brookesia::gui::lvgl::unlock_thread(); }
+    void set_polling(bool enabled){ esp_brookesia::gui::lvgl::lock_thread(); if(timer_){ if(enabled){ lv_timer_resume(timer_); lv_timer_ready(timer_); } else lv_timer_pause(timer_); } esp_brookesia::gui::lvgl::unlock_thread(); }
     static void on_refresh(lv_event_t *e){ auto *self=static_cast<HomeAssistantApp*>(lv_event_get_user_data(e)); if(self) ha::refresh_async(); }
     static void on_close(lv_event_t *e){ auto *self=static_cast<HomeAssistantApp*>(lv_event_get_user_data(e)); if(self&&self->context_) (void)self->context_->system_service().request_close_app(self->context_->app_id()); }
     static void on_entity(lv_event_t *e){ auto *slot=static_cast<Slot*>(lv_event_get_user_data(e)); if(!slot||!slot->self) return; auto st=ha::status(); if(slot->index<st.entities.size()) ha::toggle_async(st.entities[slot->index].entity_id); }
