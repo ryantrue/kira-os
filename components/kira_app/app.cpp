@@ -2,6 +2,9 @@
 
 #include <memory>
 #include <string>
+#include "esp_heap_caps.h"
+#include "esp_log.h"
+#include "esp_timer.h"
 
 #include "brookesia/system_core.hpp"
 #include "kira/app.hpp"
@@ -16,6 +19,15 @@ namespace core = esp_brookesia::system::core;
 
 constexpr const char *APP_ID = "kira.assistant";
 constexpr const char *SETTINGS_APP_ID = "brookesia.general.settings";
+constexpr const char *TAG = "kira_app";
+
+void log_perf(const char *event, int64_t started_us)
+{
+    ESP_LOGI(TAG, "perf %s: %lld ms, heap=%u, psram=%u", event,
+        static_cast<long long>((esp_timer_get_time() - started_us) / 1000),
+        static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
+        static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)));
+}
 
 class KiraApp final : public core::IApp {
 public:
@@ -42,6 +54,7 @@ public:
 
     std::expected<void, std::string> on_start(core::AppContext &context) override
     {
+        const int64_t started_us = esp_timer_get_time();
         context_ = &context;
         auto &surface = kira::Surface::instance();
         surface.set_close_handler([this] {
@@ -68,27 +81,34 @@ public:
             context_ = nullptr;
             return std::unexpected("Failed to create Kira voice worker");
         }
+        log_perf("start", started_us);
         return {};
     }
 
     std::expected<void, std::string> on_pause(core::AppContext &) override
     {
+        const int64_t started_us = esp_timer_get_time();
         kira::voice::stop();
         kira::Surface::instance().pause();
+        log_perf("pause", started_us);
         return {};
     }
 
     std::expected<void, std::string> on_resume(core::AppContext &) override
     {
+        const int64_t started_us = esp_timer_get_time();
         kira::Surface::instance().resume();
+        log_perf("resume", started_us);
         return {};
     }
 
     std::expected<void, std::string> on_stop(core::AppContext &) override
     {
+        const int64_t started_us = esp_timer_get_time();
         kira::voice::stop();
         kira::Surface::instance().stop();
         context_ = nullptr;
+        log_perf("stop", started_us);
         return {};
     }
 
