@@ -1,2 +1,2 @@
-idf_component_register(SRCS "app.cpp" INCLUDE_DIRS "include" REQUIRES kira_platform brookesia_system_core brookesia_gui_lvgl)
+idf_component_register(SRCS "app.cpp" INCLUDE_DIRS "include" REQUIRES kira_platform brookesia_system_core brookesia_gui_lvgl esp_timer heap log)
 target_compile_features(${COMPONENT_LIB} PUBLIC cxx_std_23)
