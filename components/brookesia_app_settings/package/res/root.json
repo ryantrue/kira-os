@@ -9,6 +9,8 @@
         "screens/wifi_connect.json",
         "screens/sound.json",
         "screens/display.json",
+        "screens/storage.json",
+        "screens/home_assistant.json",
         "screens/header.json",
         "screens/more.json",
         "screens/language.json",
