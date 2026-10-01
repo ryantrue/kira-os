@@ -13,6 +13,7 @@
         "time_zone",
         "debug",
         "storage",
+        "home_assistant",
         "kira"
     ],
     "initial": "settings_home",
@@ -125,6 +126,16 @@
         {
             "from": [],
             "action": "settings.back.storage",
+            "to": "settings_home"
+        },
+        {
+            "from": [],
+            "action": "settings.open.home_assistant",
+            "to": "home_assistant"
+        },
+        {
+            "from": [],
+            "action": "settings.back.home_assistant",
             "to": "settings_home"
         }
     ]
