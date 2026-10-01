@@ -13,6 +13,7 @@
 #include "kira/home_assistant_app.hpp"
 #include "kira/platform/logger.hpp"
 #include "kira/recents_app.hpp"
+#include "kira/scripts_app.hpp"
 #include "kira/platform/settings.hpp"
 #include "kira/platform/version.hpp"
 #include "modules/display.hpp"
@@ -71,6 +72,7 @@ extern "C" void app_main(void)
         kira::app::ensure_linked();
         kira::home_assistant_app::ensure_linked();
         kira::recents_app::ensure_linked();
+        kira::scripts_app::ensure_linked();
         BROOKESIA_LOGI("Kira OS ready (assistant available as native app)");
     };
 

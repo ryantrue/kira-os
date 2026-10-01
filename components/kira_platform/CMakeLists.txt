@@ -10,6 +10,7 @@ idf_component_register(
         "src/sdcard.cpp"
         "src/semver.cpp"
         "src/settings.cpp"
+        "src/scripts.cpp"
         "src/updater.cpp"
         "src/version.cpp"
         "src/worker.cpp"
@@ -25,6 +26,7 @@ idf_component_register(
         esp_http_server
         esp_ringbuf
         esp_netif
+        lwip
         esp_timer
         esp_wifi
         fatfs
