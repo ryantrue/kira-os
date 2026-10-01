@@ -77,13 +77,16 @@ std::expected<void, std::string> Bridge::start(core::AppContext &context)
     stop(context);
     app_context_ = &context;
     std::vector<std::string> actions;
-    for (const auto *name : {"autostart", "idle", "open", "tone", "provider", "model", "key",
+    for (const auto *name : {"autostart", "idle", "open", "provider", "model", "key",
              "ha_url", "ha_token", "ha_test", "ha_refresh", "ha_prev", "ha_next", "sd_refresh", "sd_format",
              "log_enable", "log_share", "log_clear", "update_check", "update_install", "mic_test", "mic_mute",
              "mic_gain_down", "mic_gain_up"}) {
         actions.push_back(std::string("settings.kira.") + name);
     }
     for (size_t i = 0; i < entity_ids_.size(); ++i) actions.push_back("settings.kira.entity" + std::to_string(i));
+    for (const auto *name : {"mic_test", "mic_mute", "mic_gain_down", "mic_gain_up", "speaker_test"}) {
+        actions.push_back(std::string("settings.sound.") + name);
+    }
     return context.gui().subscribe_actions(actions);
 }
 
@@ -202,7 +205,7 @@ std::expected<void, std::string> Bridge::action(core::AppContext &context, std::
             if (app.manifest.id == "kira.assistant") return context.system_service().start_app(app.app_id);
         }
         notice_ = "Kira app is unavailable.";
-    } else if (action == "settings.kira.tone") {
+    } else if (action == "settings.sound.speaker_test") {
         notice_ = kira::audio::play_test_tone() ? "Playing speaker test tone." : "Speaker test could not start.";
     } else if (action == "settings.kira.provider") {
         // Only providers with an implemented realtime adapter can be selected.
@@ -235,16 +238,16 @@ std::expected<void, std::string> Bridge::action(core::AppContext &context, std::
         const auto status = platform::updater::status();
         if (status.phase != platform::updater::Phase::Available) return {};
         return confirm(context, "Install Kira OS " + status.latest + "?", "The image is verified with SHA-256, then installed by recovery. Keep power connected. A mounted SD card is required.", [] { platform::updater::install_async(); });
-    } else if (action == "settings.kira.mic_mute") {
+    } else if (action == "settings.sound.mic_mute") {
         const auto mic = kira::audio::microphone_status();
         kira::audio::set_microphone_muted(!mic.muted);
         notice_ = mic.muted ? "Microphone software capture gate opened."
                             : "Microphone software capture gate closed.";
-    } else if (action == "settings.kira.mic_test") {
+    } else if (action == "settings.sound.mic_test") {
         notice_ = kira::audio::start_microphone_test()
             ? "Recording three seconds locally, then replaying it. No audio is uploaded."
             : "Microphone test could not start; microphone is muted, unavailable, or busy.";
-    } else if (action == "settings.kira.mic_gain_down" || action == "settings.kira.mic_gain_up") {
+    } else if (action == "settings.sound.mic_gain_down" || action == "settings.sound.mic_gain_up") {
         const auto mic = kira::audio::microphone_status();
         const float delta = action.ends_with("gain_up") ? 3.0F : -3.0F;
         const float target = std::clamp(mic.gain + delta, 0.0F, 37.5F);
