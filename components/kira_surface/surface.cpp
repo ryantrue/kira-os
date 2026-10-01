@@ -9,6 +9,8 @@
 namespace kira {
 namespace {
 constexpr int32_t SPHERE_BASE = 250;
+constexpr uint32_t ACTIVE_FRAME_MS = 33; // ~30 FPS is sufficient for the assistant pulse on 720x720.
+constexpr uint32_t IDLE_FRAME_MS = 100;  // Avoid repainting large shadowed objects at 60 FPS while idle.
 
 lv_color_t state_color(State state)
 {
@@ -219,7 +221,7 @@ void Surface::create_locked()
     lv_obj_center(close_icon);
 
     apply_state_locked(State::Idle);
-    timer_ = lv_timer_create(on_timer, 16, this);
+    timer_ = lv_timer_create(on_timer, IDLE_FRAME_MS, this);
 }
 
 void Surface::on_timer(lv_timer_t *timer)
@@ -238,7 +240,13 @@ void Surface::update_locked()
 {
     if (root_ == nullptr || paused_) return;
     const State requested = requested_state_.load(std::memory_order_relaxed);
-    if (requested != visual_state_) apply_state_locked(requested);
+    if (requested != visual_state_) {
+        apply_state_locked(requested);
+        if (timer_ != nullptr) {
+            const bool animated = requested == State::Listening || requested == State::Thinking || requested == State::Speaking;
+            lv_timer_set_period(timer_, animated ? ACTIVE_FRAME_MS : IDLE_FRAME_MS);
+        }
+    }
     std::string next_status;
     {
         std::lock_guard lock(status_mutex_);
