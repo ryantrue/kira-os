@@ -84,6 +84,8 @@ std::expected<void, std::string> Bridge::start(core::AppContext &context)
         actions.push_back(std::string("settings.kira.") + name);
     }
     for (size_t i = 0; i < entity_ids_.size(); ++i) actions.push_back("settings.kira.entity" + std::to_string(i));
+    actions.push_back("settings.storage.sd_refresh");
+    actions.push_back("settings.storage.sd_format");
     for (const auto *name : {"mic_test", "mic_mute", "mic_gain_down", "mic_gain_up", "speaker_test"}) {
         actions.push_back(std::string("settings.sound.") + name);
     }
@@ -94,6 +96,7 @@ void Bridge::stop(core::AppContext &context)
 {
     active_ = false;
     sound_active_ = false;
+    storage_active_ = false;
     app_context_ = nullptr; // Guard callbacks before cancelling shell requests.
     cancel_keyboard(context);
     if (dialog_request_id_ != core::INVALID_MESSAGE_DIALOG_REQUEST_ID) {
@@ -109,11 +112,12 @@ void Bridge::stop(core::AppContext &context)
     notice_.clear();
 }
 
-void Bridge::set_active(core::AppContext &context, bool active, bool sound_active)
+void Bridge::set_active(core::AppContext &context, bool active, bool sound_active, bool storage_active)
 {
     active_ = active;
     sound_active_ = sound_active;
-    if (!active_ && !sound_active_) {
+    storage_active_ = storage_active;
+    if (!active_ && !sound_active_ && !storage_active_) {
         cancel_keyboard(context);
         if (timer_id_ != core::INVALID_TIMER_ID) (void)context.timer().stop(timer_id_);
         timer_id_ = core::INVALID_TIMER_ID;
@@ -123,7 +127,7 @@ void Bridge::set_active(core::AppContext &context, bool active, bool sound_activ
         auto timer = context.timer().start_periodic(TIMER_NAME, 1000);
         if (timer) timer_id_ = *timer;
     }
-    if (active_) platform::sdcard::refresh_async();
+    if (storage_active_) platform::sdcard::refresh_async();
     (void)poll(context);
 }
 
@@ -222,8 +226,8 @@ std::expected<void, std::string> Bridge::action(core::AppContext &context, std::
             const auto &id = entity_ids_[suffix.front() - '0'];
             if (!id.empty()) platform::home_assistant::toggle_async(id);
         }
-    } else if (action == "settings.kira.sd_refresh") platform::sdcard::refresh_async();
-    else if (action == "settings.kira.sd_format") {
+    } else if (action == "settings.storage.sd_refresh") platform::sdcard::refresh_async();
+    else if (action == "settings.storage.sd_format") {
         return confirm(context, "Erase and format the removable SD card?", "All SD files, logs and recovery backups will be deleted. Internal LittleFS is not formatted.", [] { platform::sdcard::format_async(); });
     } else if (action == "settings.kira.log_enable") platform::logger::set_enabled(!platform::logger::enabled());
     else if (action == "settings.kira.log_share") {
@@ -262,7 +266,7 @@ std::expected<void, std::string> Bridge::action(core::AppContext &context, std::
 
 std::expected<void, std::string> Bridge::poll(core::AppContext &context)
 {
-    if (!active_ && !sound_active_) return {};
+    if (!active_ && !sound_active_ && !storage_active_) return {};
     auto &settings = Settings::instance();
     std::vector<gui::BindingValueUpdate> updates;
     const auto text = [&updates](std::string path, std::string value) {
@@ -277,6 +281,23 @@ std::expected<void, std::string> Bridge::poll(core::AppContext &context)
     const auto sound_flag = [&updates](std::string path, const char *key, bool value) {
         updates.push_back({.absolute_path = "/sound/page/" + path, .key = key, .value = value ? "true" : "false"});
     };
+    if (storage_active_) {
+        const auto sd = platform::sdcard::status();
+        const auto storage_text = [&updates](std::string path, std::string value) {
+            updates.push_back({.absolute_path = "/storage/page/" + path, .key = "labelProps.text", .value = std::move(value)});
+        };
+        const auto storage_flag = [&updates](std::string path, const char *key, bool value) {
+            updates.push_back({.absolute_path = "/storage/page/" + path, .key = key, .value = value ? "true" : "false"});
+        };
+        storage_text("sd_status", sd.mounted
+            ? "Present / mounted: " + sd.filesystem + "\nCapacity " + bytes(sd.total_bytes) +
+              ", free " + bytes(sd.free_bytes) + ", used " +
+              bytes(sd.total_bytes - std::min(sd.total_bytes, sd.free_bytes)) + "\n" + sd.message
+            : "No mounted SD card. " + sd.message);
+        storage_flag("sd_refresh", "commonProps.disabled", sd.busy);
+        storage_flag("sd_format", "commonProps.disabled", sd.busy);
+        if (!active_ && !sound_active_) return context.gui().set_binding_values(updates);
+    }
     if (sound_active_) {
         const auto mic = kira::audio::microphone_status();
         char mic_summary[160];
