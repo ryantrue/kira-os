@@ -18,7 +18,7 @@ public:
     static Bridge &instance();
     std::expected<void, std::string> start(esp_brookesia::system::core::AppContext &context);
     void stop(esp_brookesia::system::core::AppContext &context);
-    void set_active(esp_brookesia::system::core::AppContext &context, bool active, bool sound_active = false, bool storage_active = false);
+    void set_active(esp_brookesia::system::core::AppContext &context, bool active, bool sound_active = false, bool storage_active = false, bool home_assistant_active = false);
     std::expected<void, std::string> action(esp_brookesia::system::core::AppContext &context, std::string_view action);
     std::expected<void, std::string> poll(esp_brookesia::system::core::AppContext &context);
     std::expected<void, std::string> request_text(esp_brookesia::system::core::AppContext &context, Field field);
@@ -38,6 +38,7 @@ private:
     bool active_ = false;
     bool sound_active_ = false;
     bool storage_active_ = false;
+    bool home_assistant_active_ = false;
     size_t entity_page_ = 0;
     std::array<std::string, 8> entity_ids_{};
     std::string notice_;
