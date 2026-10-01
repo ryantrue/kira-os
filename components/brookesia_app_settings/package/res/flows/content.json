@@ -12,6 +12,7 @@
         "language",
         "time_zone",
         "debug",
+        "storage",
         "kira"
     ],
     "initial": "settings_home",
@@ -114,6 +115,16 @@
         {
             "from": [],
             "action": "settings.back.kira",
+            "to": "settings_home"
+        },
+        {
+            "from": [],
+            "action": "settings.open.storage",
+            "to": "storage"
+        },
+        {
+            "from": [],
+            "action": "settings.back.storage",
             "to": "settings_home"
         }
     ]
