@@ -1,0 +1,10 @@
+{
+  "type":"viewScreen","id":"home_assistant","mountMode":"dynamic","commonProps":{"scrollable":false},"styleRefs":["app.page"],
+  "children":[{"type":"container","id":"page","commonProps":{"scrollable":true},"layout":{"type":"flex","flexFlow":"column","gap":"${constant.settings.layout.pageGap}"},"placement":{"mode":"absolute","x":"${constant.settings.layout.pageX}","y":"${constant.settings.layout.pageY}","width":"${constant.settings.layout.pageWidth}","height":"${constant.settings.layout.pageHeight}"},"children":[
+    {"type":"label","id":"status","styleRefs":["app.caption"],"labelProps":{"text":"Home Assistant is not configured."},"placement":{"mode":"flow","width":"match","height":"wrap"},"bindings":{"labelProps.text":"labelProps.text"}},
+    {"type":"templateRef","id":"url","templateId":"setting_row","overrides":{".":{"events":[{"type":"clicked","action":"settings.home_assistant.url"}]},"title":{"labelProps":{"text":"Server address"}}}},
+    {"type":"templateRef","id":"token","templateId":"setting_row","overrides":{".":{"events":[{"type":"clicked","action":"settings.home_assistant.token"}]},"title":{"labelProps":{"text":"Access token"}}}},
+    {"type":"templateRef","id":"test","templateId":"setting_row","overrides":{".":{"events":[{"type":"clicked","action":"settings.home_assistant.test"}]},"title":{"labelProps":{"text":"Test connection"}}}},
+    {"type":"label","id":"note","styleRefs":["app.caption"],"labelProps":{"text":"Entity controls live in the Home Assistant app."},"placement":{"mode":"flow","width":"match","height":"wrap"}}
+  ]}]
+}
