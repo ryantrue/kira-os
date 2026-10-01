@@ -10,6 +10,7 @@
 
 #include "kira/boot.hpp"
 #include "kira/app.hpp"
+#include "kira/home_assistant_app.hpp"
 #include "kira/platform/logger.hpp"
 #include "kira/platform/settings.hpp"
 #include "kira/platform/version.hpp"
@@ -67,6 +68,7 @@ extern "C" void app_main(void)
         // owns its start/pause/resume/stop lifecycle; no persistent top-layer
         // assistant surface is created at boot.
         kira::app::ensure_linked();
+        kira::home_assistant_app::ensure_linked();
         BROOKESIA_LOGI("Kira OS ready (assistant available as native app)");
     };
 
