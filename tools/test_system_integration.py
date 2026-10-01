@@ -68,6 +68,22 @@ def test_settings_screen() -> None:
     require(not any("keyboard" in str(node.get("type", "")).lower() for node in nodes),
             "Kira Settings embeds a second keyboard")
 
+    sound = json.loads(read("components/brookesia_app_settings/package/res/screens/sound.json"))
+    sound_nodes = list(walk_json(sound))
+    sound_ids = {node["id"] for node in sound_nodes if isinstance(node.get("id"), str)}
+    require({"mic_status", "mic_mute", "mic_gain_down", "mic_gain_up", "mic_test", "speaker_test"} <= sound_ids,
+            "native Sound page is missing microphone/speaker controls")
+    sound_actions = {
+        event["action"]
+        for node in sound_nodes
+        for event in node.get("events", [])
+        if isinstance(event, dict) and isinstance(event.get("action"), str)
+    }
+    require({
+        "settings.sound.mic_mute", "settings.sound.mic_gain_down", "settings.sound.mic_gain_up",
+        "settings.sound.mic_test", "settings.sound.speaker_test",
+    } <= sound_actions, "native Sound page audio actions are incomplete")
+
     template = json.loads(read("components/brookesia_app_settings/package/res/templates/setting_row.json"))
     bindings = template.get("node", {}).get("bindings", {})
     require(bindings.get("commonProps.disabled") == "commonProps.disabled", "setting rows do not bind disabled state")
@@ -80,6 +96,8 @@ def test_settings_controller() -> None:
     for call in (".start(context)", ".stop(context)", ".set_active(context", ".action(context", ".poll(context)"):
         require(f"Bridge::instance(){call}" in lifecycle, f"stock Settings lifecycle is missing Bridge{call}")
     require('set(COMPONENT_REQUIRES "kira_settings")' in cmake, "stock Settings does not link kira_settings")
+    require('current_page_ == PAGE_SOUND' in lifecycle, "native Sound page does not activate the audio bridge")
+    require('action.starts_with("settings.sound.mic_")' in lifecycle, "native Sound microphone actions are not routed")
     require("show_keyboard(make_options(field)" in bridge, "Kira fields do not use the system keyboard")
     require("if (!result.text.empty()) err = settings.set_ai_key" in bridge, "empty input can erase the AI key")
     require("if (!result.text.empty()) err = settings.set_ha_token" in bridge, "empty input can erase the HA token")
